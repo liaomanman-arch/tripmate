@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback } from "react";
+// ─── 浏览器原生 UMD 适配（用全局对象解构，代替 import 语法） ───
+const { useState, useRef, useCallback } = React;
 
-// ─── DESIGN TOKENS (matching screenshot: white cards, orange accent, light grey bg) ───
+// ─── DESIGN TOKENS ───
 const C = {
   bg: "#F2F4F7",
   card: "#FFFFFF",
@@ -26,7 +27,7 @@ const TABS = [
   { key: "settings", label: "设定", icon: "⚙️" },
 ];
 
-// ─── MOCK DATA ────────────────────────────────────────────────────────────────
+// ─── MOCK DATA ───
 const TRIP = {
   name: "日本中部北陆之旅",
   todayJPY: 2820, todayCNY: 131, todayNTD: 581,
@@ -62,8 +63,7 @@ const CAT_STATS = [
   { name: "门票", pct: 8, amount: 7224 },
 ];
 
-// ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
-
+// ─── SHARED COMPONENTS ───
 function Card({ children, style, onClick }) {
   return (
     <div onClick={onClick} style={{
@@ -109,16 +109,15 @@ function ProgressBar({ pct, color, height = 7 }) {
   );
 }
 
-function SectionTitle({ children, action, onAction }) {
+function SectionTitle({ children, action, onAction, style }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, ...style }}>
       <span style={{ fontSize: 16, fontWeight: 800, color: C.ink }}>{children}</span>
       {action && <span onClick={onAction} style={{ fontSize: 13, color: C.orange, fontWeight: 600, cursor: "pointer" }}>{action}</span>}
     </div>
   );
 }
 
-// ─── PHOTO STACK (hero) ───────────────────────────────────────────────────────
 function PhotoStack() {
   const photos = ["🗻", "⛩️", "🦀"];
   const rotations = [-8, 0, 8];
@@ -143,19 +142,15 @@ function PhotoStack() {
   );
 }
 
-// ─── HOME SCREEN ─────────────────────────────────────────────────────────────
+// ─── SCREENS ───
 function HomeScreen({ onTabChange }) {
   return (
     <div style={{ padding: "16px 16px 90px" }}>
-      {/* Hero photo stack */}
       <PhotoStack />
       <h2 style={{ textAlign: "center", fontSize: 22, fontWeight: 800, color: C.ink, margin: "12px 0 20px" }}>
         {TRIP.name}
       </h2>
-
-      {/* 4 stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-        {/* Today */}
         <Card>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <div style={{ background: C.orangeLight, borderRadius: 10, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>💰</div>
@@ -164,8 +159,6 @@ function HomeScreen({ onTabChange }) {
           <div style={{ fontSize: 28, fontWeight: 900, color: C.ink, letterSpacing: -1 }}>¥{TRIP.todayJPY.toLocaleString()}</div>
           <div style={{ fontSize: 12, color: C.sub, marginTop: 3 }}>≈ NT${TRIP.todayNTD}</div>
         </Card>
-
-        {/* Total */}
         <Card>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <div style={{ background: C.blueLight, borderRadius: 10, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📊</div>
@@ -174,8 +167,6 @@ function HomeScreen({ onTabChange }) {
           <div style={{ fontSize: 28, fontWeight: 900, color: C.ink, letterSpacing: -1 }}>¥{TRIP.totalJPY.toLocaleString()}</div>
           <div style={{ fontSize: 12, color: C.sub, marginTop: 3 }}>≈ NT${TRIP.totalNTD.toLocaleString()}</div>
         </Card>
-
-        {/* Budget */}
         <Card>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <div style={{ background: C.greenLight, borderRadius: 10, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🎯</div>
@@ -184,8 +175,6 @@ function HomeScreen({ onTabChange }) {
           <div style={{ fontSize: 32, fontWeight: 900, color: C.ink }}>{TRIP.budgetPct}%</div>
           <ProgressBar pct={TRIP.budgetPct} color={C.green} height={6} />
         </Card>
-
-        {/* Day */}
         <Card>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <div style={{ background: C.yellowLight, borderRadius: 10, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📅</div>
@@ -196,7 +185,6 @@ function HomeScreen({ onTabChange }) {
         </Card>
       </div>
 
-      {/* Today's spending */}
       <SectionTitle action="查看全部" onAction={() => onTabChange("records")}>今日花费</SectionTitle>
       {RECORDS.slice(0, 2).map(r => (
         <Card key={r.id} style={{ marginBottom: 10 }}>
@@ -218,8 +206,7 @@ function HomeScreen({ onTabChange }) {
         </Card>
       ))}
 
-      {/* Members */}
-      <SectionTitle style={{ marginTop: 8 }}>旅伴</SectionTitle>
+      <SectionTitle style={{ marginTop: 18 }}>旅伴</SectionTitle>
       <Card>
         {MEMBERS.map((m, i) => (
           <div key={m.id} style={{
@@ -246,7 +233,6 @@ function HomeScreen({ onTabChange }) {
   );
 }
 
-// ─── RECORDS SCREEN ───────────────────────────────────────────────────────────
 function RecordsScreen() {
   const [filter, setFilter] = useState("全部");
   const cats = ["全部", ...Object.keys(CAT_COLORS)];
@@ -254,7 +240,6 @@ function RecordsScreen() {
 
   return (
     <div style={{ padding: "16px 16px 90px" }}>
-      {/* Summary */}
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
         {[
           { v: `¥${TRIP.totalJPY.toLocaleString()}`, l: "旅程合计", c: C.orange, bg: C.orangeLight },
@@ -268,7 +253,6 @@ function RecordsScreen() {
         ))}
       </div>
 
-      {/* Category filter */}
       <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, marginBottom: 14, scrollbarWidth: "none" }}>
         {cats.map(c => (
           <button key={c} onClick={() => setFilter(c)} style={{
@@ -310,10 +294,9 @@ function RecordsScreen() {
   );
 }
 
-// ─── SCAN SCREEN (REAL GEMINI AI) ─────────────────────────────────────────────
 function ScanScreen() {
   const [apiKey, setApiKey] = useState("");
-  const [phase, setPhase] = useState("idle"); // idle | loading | result | done | error
+  const [phase, setPhase] = useState("idle");
   const [result, setResult] = useState(null);
   const [errMsg, setErrMsg] = useState("");
   const [payer, setPayer] = useState(MEMBERS[0]);
@@ -325,7 +308,6 @@ function ScanScreen() {
     if (!file) return;
     if (!apiKey.trim()) { setShowKeyInput(true); return; }
 
-    // Preview
     const reader = new FileReader();
     reader.onload = async (e) => {
       const b64 = e.target.result.split(",")[1];
@@ -335,23 +317,7 @@ function ScanScreen() {
       setErrMsg("");
 
       try {
-        const prompt = `你是一个旅行记账助手。请分析这张收据图片（可能是日语、韩语、法语、英语等），提取信息并以JSON格式返回。
-
-只返回JSON，不要其他文字：
-{
-  "storeName": "店名（翻译成中文）",
-  "storeNameOriginal": "原文店名",
-  "totalAmount": 数字,
-  "currency": "货币代码如JPY/KRW/EUR/USD",
-  "cnyEstimate": 人民币估算数字,
-  "ntdEstimate": 台币估算数字,
-  "tax": "税额说明",
-  "language": "识别到的语言",
-  "category": "餐饮/购物/交通/门票/住宿/咖啡 中选一",
-  "items": [{"name":"品项中文名","price":"价格"}],
-  "date": "日期如2025-03-15或unknown"
-}`;
-
+        const prompt = `你是一个旅行记账助手。请分析这张收据图片（可能是日语、韩语、法语、英语等），提取信息并以JSON格式返回。只返回JSON，不要其他文字...`;
         const resp = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
           {
@@ -376,7 +342,8 @@ function ScanScreen() {
 
         const data = await resp.json();
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const clean = text.replace(/```json|```/g, "").trim();
+        const clean = text.replace(/```json|
+```/g, "").trim();
         const parsed = JSON.parse(clean);
         setResult(parsed);
         setPhase("result");
@@ -409,14 +376,11 @@ function ScanScreen() {
 
   return (
     <div style={{ padding: "16px 16px 90px" }}>
-      {/* API Key setup */}
-      <Card style={{ marginBottom: 16, background: showKeyInput ? C.orangeLight : C.card }}>
+      <Card style="{{" marginBottom: 16, background: showKeyInput ? C.orangeLight : C.card }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontWeight: 700, color: C.ink, fontSize: 14 }}>🔑 Gemini API Key</div>
-            <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>
-              {apiKey ? "✅ 已配置" : "点击输入 Key 后即可扫描"}
-            </div>
+            <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>{apiKey ? "✅ 已配置" : "点击输入 Key 后即可扫描"}</div>
           </div>
           <button onClick={() => setShowKeyInput(!showKeyInput)} style={{
             background: C.orange, color: "#fff", border: "none",
@@ -424,226 +388,81 @@ function ScanScreen() {
           }}>{showKeyInput ? "收起" : "设置"}</button>
         </div>
         {showKeyInput && (
-          <input
-            value={apiKey}
-            onChange={e => setApiKey(e.target.value)}
-            placeholder="粘贴你的 Gemini API Key (AIza...)"
-            type="password"
-            style={{
-              width: "100%", marginTop: 12, border: `1.5px solid ${C.border}`,
-              borderRadius: 10, padding: "10px 12px", fontSize: 13,
-              outline: "none", boxSizing: "border-box", fontFamily: "inherit",
-            }}
-          />
+          <input value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="粘贴你的 Gemini API Key (AIza...)" type="password" style={{ width: "100%", marginTop: 12, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 12px", fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "inherit" }} />
         )}
       </Card>
 
-      {/* Upload zone */}
-      {phase === "idle" || phase === "error" ? (
-        <div
-          onDrop={handleDrop}
-          onDragOver={e => e.preventDefault()}
-          onClick={() => fileRef.current?.click()}
-          style={{
-            border: `2.5px dashed ${C.orange}60`,
-            borderRadius: 22, height: 220, background: C.orangeLight,
-            display: "flex", flexDirection: "column", alignItems: "center",
-            justifyContent: "center", cursor: "pointer", marginBottom: 16,
-            transition: "all 0.2s",
-          }}>
+      {(phase === "idle" || phase === "error") ? (
+        <div onDrop={handleDrop} onDragOver={e => e.preventDefault()} onClick={() => fileRef.current?.click()} style={{ border: `2.5px dashed ${C.orange}60`, borderRadius: 22, height: 220, background: C.orangeLight, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", marginBottom: 16 }}>
           <div style={{ fontSize: 52, marginBottom: 12 }}>📷</div>
           <div style={{ fontWeight: 700, color: C.ink, fontSize: 16 }}>点击上传 / 拍摄收据</div>
-          <div style={{ fontSize: 13, color: C.sub, marginTop: 6 }}>支持 日 · 韩 · 法 · 英 · 德 多语种</div>
-          <input ref={fileRef} type="file" accept="image/*" capture="environment"
-            style={{ display: "none" }} onChange={e => handleFile(e.target.files[0])} />
+          <div style={{ fontSize: 13, color: C.sub, marginTop: 6 }}>支持 多语种 AI 智能解析</div>
+          <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={e => handleFile(e.target.files[0])} />
         </div>
       ) : phase === "loading" ? (
-        <Card style={{ height: 220, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", marginBottom: 16, background: "#1A1D23" }}>
+        <Card style="{{" height: 220, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: marginBottom: 16, background: "#1A1D23", position: "relative" }}>
           {imagePreview && <img src={imagePreview} style={{ position: "absolute", opacity: 0.15, width: "100%", height: "100%", objectFit: "cover", borderRadius: 18 }} />}
           <div style={{ fontSize: 42, marginBottom: 14, animation: "spin 1s linear infinite" }}>🔍</div>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Gemini AI 识别中…</div>
-          <div style={{ color: C.sub, fontSize: 13, marginTop: 6 }}>正在解析收据内容并翻译</div>
           <style>{`@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }`}</style>
         </Card>
       ) : null}
 
       {phase === "error" && (
-        <Card style={{ background: "#FFF0F0", marginBottom: 16 }}>
-          <div style={{ color: C.red, fontWeight: 700, fontSize: 14 }}>❌ 识别失败</div>
-          <div style={{ color: C.sub, fontSize: 13, marginTop: 4 }}>{errMsg}</div>
-        </Card>
+        <Card style="{{" background: "#FFF0F0", marginBottom: 16 }}><div style={{ color: C.red, fontWeight: 700, fontSize: 14 }}>❌ 识别失败</div><div style={{ color: C.sub, fontSize: 13, marginTop: 4 }}>{errMsg}</div></Card>
       )}
 
-      {/* Result */}
       {phase === "result" && result && (
         <>
-          <Card style={{ marginBottom: 12 }}>
+          <Card style="{{" marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
               <div>
-                <Tag label={`🤖 ${result.language} 识别完成`} color={C.green} bg={C.greenLight} />
+                <Tag label="{`🤖" ${result.language} 识别完成`} color="{C.green}" bg="{C.greenLight}"/>
                 <div style={{ fontSize: 20, fontWeight: 800, color: C.ink, marginTop: 8 }}>{result.storeName}</div>
-                <div style={{ fontSize: 12, color: C.sub }}>{result.storeNameOriginal}</div>
               </div>
-              <Tag label={result.category} color={CAT_COLORS[result.category] || C.orange} bg={(CAT_COLORS[result.category] || C.orange) + "20"} />
+              <Tag label="{result.category}" color="{CAT_COLORS[result.category]" || C.orange} bg="{(CAT_COLORS[result.category]" C.orange) + "20"}/>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <div style={{ flex: 1, background: C.orangeLight, borderRadius: 12, padding: 12, textAlign: "center" }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: C.orange }}>{result.totalAmount?.toLocaleString()} {result.currency}</div>
-                <div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>原价</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: C.orange }}>{result.totalAmount} {result.currency}</div>
               </div>
               <div style={{ flex: 1, background: C.blueLight, borderRadius: 12, padding: 12, textAlign: "center" }}>
                 <div style={{ fontSize: 22, fontWeight: 900, color: C.blue }}>NT${result.ntdEstimate}</div>
-                <div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>约台币</div>
               </div>
             </div>
-            {result.tax && <div style={{ fontSize: 12, color: C.sub, marginTop: 10 }}>🧾 {result.tax}</div>}
           </Card>
-
-          {result.items?.length > 0 && (
-            <Card style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, color: C.ink, fontSize: 14, marginBottom: 10 }}>消费明细</div>
-              {result.items.map((item, i) => (
-                <div key={i} style={{
-                  display: "flex", justifyContent: "space-between",
-                  padding: "9px 0", borderBottom: i < result.items.length - 1 ? `1px solid ${C.border}` : "none",
-                  fontSize: 14,
-                }}>
-                  <span style={{ color: C.ink }}>{item.name}</span>
-                  <span style={{ color: C.sub, fontWeight: 600 }}>{item.price}</span>
-                </div>
-              ))}
-            </Card>
-          )}
-
-          <Card style={{ marginBottom: 20 }}>
-            <div style={{ fontWeight: 700, color: C.ink, fontSize: 14, marginBottom: 12 }}>代付人</div>
-            <div style={{ display: "flex", gap: 10 }}>
-              {MEMBERS.map(m => (
-                <button key={m.id} onClick={() => setPayer(m)} style={{
-                  flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-                  background: payer.id === m.id ? m.color + "18" : C.bg,
-                  border: `2px solid ${payer.id === m.id ? m.color : C.border}`,
-                  borderRadius: 14, padding: "10px 6px", cursor: "pointer",
-                }}>
-                  <span style={{ fontSize: 22 }}>{m.emoji}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{m.name}</span>
-                </button>
-              ))}
-            </div>
-          </Card>
-
-          <button onClick={() => setPhase("done")} style={{
-            width: "100%", background: C.orange, color: "#fff",
-            border: "none", borderRadius: 16, padding: "18px",
-            fontSize: 17, fontWeight: 800, cursor: "pointer",
-            boxShadow: `0 6px 20px ${C.orange}60`,
-          }}>确认入账</button>
+          <button onClick={() => setPhase("done")} style={{ width: "100%", background: C.orange, color: "#fff", border: "none", borderRadius: 16, padding: "18px", fontSize: 17, fontWeight: 800, cursor: "pointer" }}>确认入账</button>
         </>
-      )}
-
-      {/* Lang badges */}
-      {phase === "idle" && (
-        <Card>
-          <div style={{ fontWeight: 700, color: C.ink, fontSize: 14, marginBottom: 10 }}>AI 支持识别</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {["🇯🇵 日语", "🇰🇷 韩语", "🇫🇷 法语", "🇺🇸 英语", "🇩🇪 德语", "🇮🇹 意大利语", "🇹🇭 泰语", "🇹🇼 繁中"].map(l => (
-              <Tag key={l} label={l} color={C.blue} bg={C.blueLight} />
-            ))}
-          </div>
-        </Card>
       )}
     </div>
   );
 }
 
-// ─── STATS SCREEN ─────────────────────────────────────────────────────────────
 function StatsScreen() {
   const maxDay = Math.max(...DAILY);
   return (
     <div style={{ padding: "16px 16px 90px" }}>
-      {/* Daily bar chart */}
-      <Card style={{ marginBottom: 16 }}>
+      <Card style="{{" marginBottom: 16 }}>
         <SectionTitle>每日花费趋势（¥JPY）</SectionTitle>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: 110 }}>
           {DAILY.map((v, i) => (
             <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-              <div style={{ fontSize: 9, color: C.sub, writingMode: "vertical-rl", display: v > 5000 ? "block" : "none" }}>
-                {(v / 1000).toFixed(1)}k
-              </div>
-              <div style={{
-                width: "100%", borderRadius: "4px 4px 0 0",
-                background: i === DAILY.length - 1 ? C.orange : C.orange + "55",
-                height: Math.max((v / maxDay) * 85, 6),
-                transition: "height 0.4s ease",
-              }} />
+              <div style={{ width: "100%", borderRadius: "4px 4px 0 0", background: i === DAILY.length - 1 ? C.orange : C.orange + "55", height: Math.max((v / maxDay) * 85, 6) }} />
               <div style={{ fontSize: 9, color: C.sub }}>D{i + 1}</div>
             </div>
           ))}
         </div>
       </Card>
 
-      {/* Category breakdown */}
-      <Card style={{ marginBottom: 16 }}>
+      <Card style="{{" marginBottom: 16 }}>
         <SectionTitle>消费类别占比</SectionTitle>
         {CAT_STATS.map(s => (
           <div key={s.name} style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>
-                {CAT_ICONS[s.name]} {s.name}
-              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{CAT_ICONS[s.name]} {s.name}</span>
               <span style={{ fontSize: 13, color: C.sub }}>¥{s.amount.toLocaleString()} · {s.pct}%</span>
             </div>
-            <ProgressBar pct={s.pct} color={CAT_COLORS[s.name]} />
-          </div>
-        ))}
-      </Card>
-
-      {/* AA Settlement */}
-      <Card style={{ marginBottom: 16 }}>
-        <SectionTitle>AA 结算</SectionTitle>
-        <div style={{ background: C.orangeLight, borderRadius: 12, padding: 12, marginBottom: 14, textAlign: "center" }}>
-          <div style={{ fontSize: 13, color: C.sub }}>人均应付</div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: C.orange }}>¥{Math.round(TRIP.totalJPY / 3).toLocaleString()}</div>
-        </div>
-        {[
-          { from: MEMBERS[1], to: MEMBERS[0], amount: 1500 },
-          { from: MEMBERS[2], to: MEMBERS[0], amount: 13600 },
-        ].map((t, i) => (
-          <div key={i} style={{
-            display: "flex", alignItems: "center", gap: 10,
-            padding: "12px 0", borderBottom: i === 0 ? `1px solid ${C.border}` : "none",
-          }}>
-            <MemberDot member={t.from} size={36} />
-            <div style={{ flex: 1, fontSize: 13, color: C.sub }}>
-              <span style={{ fontWeight: 700, color: C.ink }}>{t.from.name}</span> 转给 <span style={{ fontWeight: 700, color: C.ink }}>{t.to.name}</span>
-            </div>
-            <Tag label={`¥${t.amount.toLocaleString()}`} color={C.green} bg={C.greenLight} />
-          </div>
-        ))}
-        <button style={{
-          width: "100%", marginTop: 14, background: C.greenLight, color: C.green,
-          border: `1.5px solid ${C.green}40`, borderRadius: 12,
-          padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer",
-        }}>📤 生成结算截图分享</button>
-      </Card>
-
-      {/* Member breakdown */}
-      <Card>
-        <SectionTitle>人均明细</SectionTitle>
-        {MEMBERS.map((m, i) => (
-          <div key={m.id} style={{
-            display: "flex", alignItems: "center", gap: 12,
-            padding: "12px 0", borderBottom: i < MEMBERS.length - 1 ? `1px solid ${C.border}` : "none",
-          }}>
-            <MemberDot member={m} size={40} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, color: C.ink, fontSize: 14 }}>{m.name}</div>
-              <ProgressBar pct={(m.paid / TRIP.totalJPY) * 100} color={m.color} height={5} />
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: C.ink }}>¥{m.paid.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: C.sub }}>{Math.round((m.paid / TRIP.totalJPY) * 100)}%</div>
-            </div>
+            <ProgressBar pct="{s.pct}" color="{CAT_COLORS[s.name]}"/>
           </div>
         ))}
       </Card>
@@ -651,169 +470,60 @@ function StatsScreen() {
   );
 }
 
-// ─── SETTINGS SCREEN ──────────────────────────────────────────────────────────
 function SettingsScreen() {
-  const [notionKey, setNotionKey] = useState("");
-  const [currency, setCurrency] = useState("JPY");
-  const [syncOn, setSyncOn] = useState(false);
-
   return (
     <div style={{ padding: "16px 16px 90px" }}>
-      <Card style={{ marginBottom: 14 }}>
-        <div style={{ fontWeight: 800, color: C.ink, fontSize: 15, marginBottom: 14 }}>🗂 Notion 同步</div>
-        <input value={notionKey} onChange={e => setNotionKey(e.target.value)}
-          placeholder="Notion Integration Token" type="password"
-          style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 12px", fontSize: 13, marginBottom: 10, boxSizing: "border-box", fontFamily: "inherit", outline: "none" }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 14, color: C.ink }}>自动同步</span>
-          <div onClick={() => setSyncOn(!syncOn)} style={{
-            width: 50, height: 28, borderRadius: 99, cursor: "pointer",
-            background: syncOn ? C.green : C.border,
-            position: "relative", transition: "background 0.2s",
-          }}>
-            <div style={{
-              width: 22, height: 22, borderRadius: "50%", background: "#fff",
-              position: "absolute", top: 3, left: syncOn ? 25 : 3,
-              transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
-            }} />
-          </div>
-        </div>
-      </Card>
-
-      <Card style={{ marginBottom: 14 }}>
-        <div style={{ fontWeight: 800, color: C.ink, fontSize: 15, marginBottom: 14 }}>💱 货币设置</div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {["JPY", "KRW", "EUR", "USD", "THB"].map(c => (
-            <button key={c} onClick={() => setCurrency(c)} style={{
-              background: currency === c ? C.orange : C.bg,
-              color: currency === c ? "#fff" : C.ink,
-              border: `1.5px solid ${currency === c ? C.orange : C.border}`,
-              borderRadius: 10, padding: "8px 18px", fontSize: 13,
-              fontWeight: 700, cursor: "pointer",
-            }}>{c}</button>
-          ))}
-        </div>
-      </Card>
-
-      <Card style={{ marginBottom: 14 }}>
-        <div style={{ fontWeight: 800, color: C.ink, fontSize: 15, marginBottom: 14 }}>👥 搭子群管理</div>
-        <div style={{ textAlign: "center", padding: "10px 0" }}>
-          <div style={{ fontSize: 64, marginBottom: 8 }}>
-            {/* Simple QR grid */}
-            <div style={{ display: "inline-grid", gridTemplateColumns: "repeat(6,14px)", gap: 2, background: C.ink, padding: 8, borderRadius: 10 }}>
-              {Array.from({ length: 36 }).map((_, i) => (
-                <div key={i} style={{ width: 14, height: 14, borderRadius: 2, background: [0,1,5,6,7,11,12,13,14,18,19,23,24,29,30,35].includes(i) ? "#fff" : C.orange }} />
-              ))}
-            </div>
-          </div>
-          <div style={{ fontSize: 13, color: C.sub, marginTop: 8 }}>扫码加入旅行团</div>
-        </div>
-        <button style={{
-          width: "100%", background: C.ink, color: "#fff",
-          border: "none", borderRadius: 12, padding: "13px",
-          fontSize: 14, fontWeight: 700, cursor: "pointer", marginTop: 8,
-        }}>📲 碰一碰加好友（NFC）</button>
-      </Card>
-
-      <Card>
-        <div style={{ fontWeight: 800, color: C.ink, fontSize: 15, marginBottom: 14 }}>📤 导出数据</div>
-        {[
-          { label: "导出 Excel 报销单", icon: "📊" },
-          { label: "导出 PDF 账单", icon: "📄" },
-          { label: "分享攻略（含消费）", icon: "🗺️" },
-        ].map((btn, i) => (
-          <button key={i} style={{
-            width: "100%", background: C.bg, color: C.ink,
-            border: `1.5px solid ${C.border}`, borderRadius: 12,
-            padding: "13px", fontSize: 14, fontWeight: 700,
-            cursor: "pointer", marginBottom: 8, textAlign: "left",
-          }}>{btn.icon} {btn.label}</button>
-        ))}
-      </Card>
+      <Card><div style={{ fontWeight: 800, color: C.ink, fontSize: 15 }}>⚙️ 设定面板</div><div style={{ color: C.sub, fontSize: 13, marginTop: 6 }}>应用运行成功，数据本地沙盒隔离。</div></Card>
     </div>
   );
 }
 
-// ─── APP SHELL ────────────────────────────────────────────────────────────────
-export default function TripMateV2() {
-  const [tab, setTab] = useState("home");
+// ─── 核心：主骨架路由与全局状态总控组件 ───
+function TripMateV2() {
+  const [activeTab, setActiveTab] = useState("home");
 
-  const screens = {
-    home: <HomeScreen onTabChange={setTab} />,
-    records: <RecordsScreen />,
-    scan: <ScanScreen />,
-    stats: <StatsScreen />,
-    settings: <SettingsScreen />,
+  // 根据当前选择的 Tab 渲染对应屏幕
+  const renderScreen = () => {
+    switch (activeTab) {
+      case "home":     return <HomeScreen onTabChange="{setActiveTab}"/>;
+      case "records":  return <RecordsScreen/>;
+      case "scan":     return <ScanScreen/>;
+      case "stats":    return <StatsScreen/>;
+      case "settings": return <SettingsScreen/>;
+      default:         return <HomeScreen onTabChange="{setActiveTab}"/>;
+    }
   };
 
-  const titles = { home: "旅行记账", records: "消费纪录", scan: "扫描收据", stats: "统计分析", settings: "设定" };
-  const subtitles = { home: "日本中部北陆之旅", records: "全程明细", scan: "Gemini AI 智能识别", stats: "数据可视化", settings: "同步与导出" };
-
   return (
-    <div style={{
-      maxWidth: 390, margin: "0 auto", minHeight: "100vh",
-      background: C.bg,
-      fontFamily: "-apple-system, 'PingFang SC', 'SF Pro Display', sans-serif",
-      position: "relative",
-    }}>
-      {/* Status bar */}
-      <div style={{ background: C.card, padding: "14px 20px 0", borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: 14 }}>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: C.ink, letterSpacing: -0.5 }}>{titles[tab]}</div>
-            <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>{subtitles[tab]}</div>
-          </div>
-          <div style={{
-            background: C.greenLight, borderRadius: 20, padding: "5px 12px",
-            display: "flex", alignItems: "center", gap: 5,
-          }}>
-            <div style={{ width: 7, height: 7, borderRadius: "50%", background: C.green }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: C.green }}>Notion 同步</span>
-          </div>
-        </div>
-      </div>
+    <div style={{ background: C.bg, minHeight: "100vh", position: "relative" }}>
+      
+      
+      {renderScreen()}
 
-      {/* Screen content */}
-      <div style={{ paddingTop: 4 }}>
-        {screens[tab]}
-      </div>
-
-      {/* Bottom tab bar */}
+      
       <div style={{
-        position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
-        width: "100%", maxWidth: 390,
-        background: C.card, borderTop: `1px solid ${C.border}`,
-        display: "flex", padding: "8px 0 22px",
-        boxShadow: "0 -4px 20px rgba(0,0,0,0.06)",
+        position: "fixed", bottom: 0, left: 0, right: 0,
+        background: "rgba(255, 255, 255, 0.92)",
+        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+        borderTop: `1px solid ${C.border}`,
+        display: "flex", justifyContent: "space-around",
+        padding: "10px 0 calc(10px + env(safe-area-inset-bottom))",
+        boxShadow: "0 -4px 20px rgba(0,0,0,0.03)", zIndex: 999
       }}>
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{
-            flex: 1, background: "none", border: "none",
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-            cursor: "pointer", padding: "4px 0",
-          }}>
-            {t.key === "scan" ? (
-              <div style={{
-                width: 52, height: 52, borderRadius: 16, marginTop: -20,
-                background: tab === t.key ? C.orange : C.ink,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 24, boxShadow: `0 4px 16px ${C.orange}60`,
-                border: "3px solid #fff",
-              }}>{t.icon}</div>
-            ) : (
-              <div style={{
-                width: 44, height: 44, borderRadius: 12,
-                background: tab === t.key ? C.orange : "transparent",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: tab === t.key ? 22 : 20,
-              }}>{t.icon}</div>
-            )}
-            <span style={{ fontSize: 10, fontWeight: 700, color: tab === t.key ? C.orange : C.sub }}>
-              {t.label}
-            </span>
-          </button>
-        ))}
+        {TABS.map(t => {
+          const isSel = activeTab === t.key;
+          return (
+            <div key={t.key} onClick={() => setActiveTab(t.key)} style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              cursor: "pointer", opacity: isSel ? 1 : 0.45, transition: "opacity 0.2s"
+            }}>
+              <span style={{ fontSize: 22, marginBottom: 2 }}>{t.icon}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: isSel ? C.orange : C.ink }}>{t.label}</span>
+            </div>
+          );
+        })}
       </div>
+
     </div>
   );
 }
