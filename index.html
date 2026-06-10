@@ -4,30 +4,211 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TripMate 旅行记账</title>
-    <!-- 加载 React 和必要库 -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- 让浏览器原生支持 JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        body { margin: 0; background: #F2F4F7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { margin: 0; background: #F2F4F7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         * { box-sizing: border-box; }
-        /* 隐藏滚动条 */
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- 1. 引入修改后的 JSX 逻辑脚本 -->
-    <script type="text/babel" src="./tripmate-v2.jsx"></script>
-
-    <!-- 2. 渲染主入口组件 -->
     <script type="text/babel">
-        // 确保渲染在脚本加载完成之后执行
-        ReactDOM.createRoot(document.getElementById('root')).render(
-            React.createElement(TripMateV2)
-        );
+        const { useState, useRef, useCallback } = React;
+
+        // ─── DESIGN TOKENS ───
+        const C = {
+          bg: "#F2F4F7", card: "#FFFFFF", orange: "#FF6B2B", orangeLight: "#FFF0EA",
+          blue: "#4A7CFF", blueLight: "#EEF3FF", green: "#2DC76D", greenLight: "#E8FAF1",
+          yellow: "#FFB800", yellowLight: "#FFF8E0", ink: "#1A1D23", sub: "#8A8FA3",
+          border: "#ECEEF2", red: "#FF4444",
+        };
+
+        const TABS = [
+          { key: "home", label: "首页", icon: "🏠" },
+          { key: "records", label: "纪录", icon: "📋" },
+          { key: "scan", label: "扫描", icon: "📷" },
+          { key: "stats", label: "统计", icon: "📊" },
+          { key: "settings", label: "设定", icon: "⚙️" },
+        ];
+
+        // ─── MOCK DATA ───
+        const TRIP = { name: "日本中部北陆之旅", todayJPY: 2820, todayCNY: 131, todayNTD: 581, totalJPY: 90300, totalNTD: 18602, budgetPct: 16, day: 25, totalDays: 25, currency: "JPY" };
+        const MEMBERS = [
+          { id: 1, name: "小雨", emoji: "👩‍🦱", color: C.orange, paid: 45200, share: 30100 },
+          { id: 2, name: "阿明", emoji: "👨‍🦳", color: C.blue, paid: 28600, share: 30100 },
+          { id: 3, name: "Tony", emoji: "🧑‍🦰", color: C.green, paid: 16500, share: 30100 },
+        ];
+        const RECORDS = [
+          { id: 1, title: "咖啡、麵包", category: "餐饮", method: "现金", store: "Lawson", amount: 420, ntd: 87, member: MEMBERS[0], day: "Day25", time: "08:12", lang: "日语" },
+          { id: 2, title: "温泉入浴券", category: "门票", method: "Suica", store: "加賀温泉郷", amount: 1800, ntd: 371, member: MEMBERS[1], day: "Day24", time: "14:30", lang: "日语" },
+          { id: 3, title: "金沢カレー", category: "餐饮", method: "现金", store: "ゴーゴーカレー", amount: 950, ntd: 196, member: MEMBERS[0], day: "Day24", time: "12:05", lang: "日语" },
+        ];
+        const CAT_COLORS = { 餐饮: C.orange, 购物: C.blue, 门票: C.yellow, 交通: C.green, 住宿: "#9B59B6", 咖啡: "#E67E22" };
+        const CAT_ICONS = { 餐饮: "🍜", 购物: "🛍️", 门票: "🎟️", 交通: "🚄", 住宿: "🏨", 咖啡: "☕" };
+        const DAILY = [1200, 3400, 2800, 5600, 4200, 7800, 3100, 2900, 4500, 6200, 3800, 2100, 4900, 5300, 3700, 2820];
+        const CAT_STATS = [
+          { name: "餐饮", pct: 35, amount: 31605 }, { name: "交通", pct: 25, amount: 22575 },
+          { name: "住宿", pct: 20, amount: 18060 }, { name: "购物", pct: 12, amount: 10836 }, { name: "门票", pct: 8, amount: 7224 }
+        ];
+
+        // ─── SHARED COMPONENTS ───
+        function Card({ children, style, onClick }) {
+          return (
+            <div onClick={onClick} style={{ background: C.card, borderRadius: 18, padding: 18, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", cursor: onClick ? "pointer" : "default", ...style }}>{children}</div>
+          );
+        }
+        function Tag({ label, color, bg }) {
+          return (
+            <span style={{ fontSize: 11, fontWeight: 700, color: color || C.orange, background: bg || C.orangeLight, borderRadius: 8, padding: "3px 8px", display: "inline-block" }}>{label}</span>
+          );
+        }
+        function MemberDot({ member, size = 38 }) {
+          return (
+            <div style={{ width: size, height: size, borderRadius: "50%", background: member.color + "22", border: `2.5px solid ${member.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.48, flexShrink: 0 }}>{member.emoji}</div>
+          );
+        }
+        function ProgressBar({ pct, color, height = 7 }) {
+          return (
+            <div style={{ background: C.border, borderRadius: 99, height, overflow: "hidden" }}>
+              <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: color || C.green, borderRadius: 99, transition: "width 0.6s ease" }} />
+            </div>
+          );
+        }
+        function SectionTitle({ children, action, onAction, style }) {
+          return (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, ...style }}>
+              <span style={{ fontSize: 16, fontWeight: 800, color: C.ink }}>{children}</span>
+              {action && <span onClick={onAction} style={{ fontSize: 13, color: C.orange, fontWeight: 600, cursor: "pointer" }}>{action}</span>}
+            </div>
+          );
+        }
+        function PhotoStack() {
+          return (
+            <div style={{ height: 170, position: "relative", display: "flex", justifyContent: "center", alignItems: "flex-end", marginBottom: 4 }}>
+              {["🗻", "⛩️", "🦀"].map((p, i) => (
+                <div key={i} style={{ position: "absolute", width: 110, height: 140, background: ["#FFD0B5", "#B5D8FF", "#B5FFD0"][i], borderRadius: 18, boxShadow: "0 6px 24px rgba(0,0,0,0.13)", transform: `rotate(${[-8, 0, 8][i]}deg) translateX(${(i - 1) * 52}px)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, zIndex: i === 1 ? 3 : i === 0 ? 1 : 2, border: "3px solid #fff" }}>{p}</div>
+              ))}
+            </div>
+          );
+        }
+
+        // ─── SCREENS ───
+        function HomeScreen({ onTabChange }) {
+          return (
+            <div style={{ padding: "16px 16px 90px" }}>
+              <PhotoStack />
+              <h2 style={{ textAlign: "center", fontSize: 22, fontWeight: 800, color: C.ink, margin: "12px 0 20px" }}>{TRIP.name}</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+                <Card>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}><div style={{ background: C.orangeLight, borderRadius: 10, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>💰</div><span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>今日支出</span></div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: C.ink, letterSpacing: -1 }}>¥{TRIP.todayJPY.toLocaleString()}</div>
+                </Card>
+                <Card>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}><div style={{ background: C.blueLight, borderRadius: 10, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>📊</div><span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>旅程累计</span></div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: C.ink, letterSpacing: -1 }}>¥{TRIP.totalJPY.toLocaleString()}</div>
+                </Card>
+              </div>
+              <SectionTitle action="查看全部" onAction={() => onTabChange("records")}>今日花费</SectionTitle>
+              {RECORDS.slice(0, 2).map(r => (
+                <Card key={r.id} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <MemberDot member={r.member} size={44} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, color: C.ink, fontSize: 15 }}>{r.title}</div>
+                      <div style={{ display: "flex", gap: 6, marginTop: 5 }}><Tag label={r.category} color={CAT_COLORS[r.category]} bg={CAT_COLORS[r.category] + "20"} /><Tag label={r.method} color={C.sub} bg={C.border} /></div>
+                    </div>
+                    <div style={{ textAlign: "right" }}><div style={{ fontSize: 20, fontWeight: 900, color: C.ink }}>¥{r.amount}</div></div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          );
+        }
+
+        function RecordsScreen() {
+          return (
+            <div style={{ padding: "16px 16px 90px" }}>
+              <SectionTitle>账目纪录</SectionTitle>
+              {RECORDS.map(r => (
+                <Card key={r.id} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 46, height: 46, borderRadius: 14, background: C.orangeLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{CAT_ICONS[r.category] || "💳"}</div>
+                    <div style={{ flex: 1 }}><div style={{ fontWeight: 700, color: C.ink }}>{r.title}</div><div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>{r.store}</div></div>
+                    <div style={{ textAlign: "right" }}><div style={{ fontSize: 18, fontWeight: 900, color: C.ink }}>¥{r.amount}</div></div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          );
+        }
+
+        function ScanScreen() {
+          return (
+            <div style={{ padding: "16px 16px 90px" }}>
+              <Card style={{ border: `2.5px dashed ${C.orange}60`, height: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: C.orangeLight, borderRadius: 20 }}>
+                <div style={{ fontSize: 44 }}>📷</div>
+                <div style={{ fontWeight: 700, marginTop: 10, color: C.ink }}>点击上传收据</div>
+              </Card>
+            </div>
+          );
+        }
+
+        function StatsScreen() {
+          return (
+            <div style={{ padding: "16px 16px 90px" }}>
+              <Card><SectionTitle>消费类别占比</SectionTitle>
+                {CAT_STATS.map(s => (
+                  <div key={s.name} style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}><span style={{ fontSize: 13, fontWeight: 700 }}>{s.name}</span><span>{s.pct}%</span></div>
+                    <ProgressBar pct={s.pct} color={CAT_COLORS[s.name]} />
+                  </div>
+                ))}
+              </Card>
+            </div>
+          );
+        }
+
+        function SettingsScreen() {
+          return (
+            <div style={{ padding: "16px 16px 90px" }}>
+              <Card><div style={{ fontWeight: 800 }}>⚙️ 设定</div><div style={{ color: C.sub, fontSize: 13, marginTop: 6 }}>应用运行成功</div></Card>
+            </div>
+          );
+        }
+
+        // ─── 主控制骨架 ───
+        function TripMateV2() {
+          const [activeTab, setActiveTab] = useState("home");
+          const renderScreen = () => {
+            if (activeTab === "home") return <HomeScreen onTabChange={setActiveTab} />;
+            if (activeTab === "records") return <RecordsScreen />;
+            if (activeTab === "scan") return <ScanScreen />;
+            if (activeTab === "stats") return <StatsScreen />;
+            if (activeTab === "settings") return <SettingsScreen />;
+            return <HomeScreen onTabChange={setActiveTab} />;
+          };
+
+          return (
+            <div style={{ background: C.bg, minHeight: "100vh" }}>
+              {renderScreen()}
+              <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255, 255, 255, 0.95)", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-around", padding: "12px 0" }}>
+                {TABS.map(t => (
+                  <div key={t.key} onClick={() => setActiveTab(t.key)} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", opacity: activeTab === t.key ? 1 : 0.4 }}>
+                    <span style={{ fontSize: 20 }}>{t.icon}</span>
+                    <span style={{ fontSize: 10, marginTop: 2, fontWeight: 700, color: activeTab === t.key ? C.orange : C.ink }}>{t.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        // 执行挂载渲染
+        ReactDOM.createRoot(document.getElementById('root')).render(<TripMateV2 />);
     </script>
 </body>
 </html>
