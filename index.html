@@ -7,23 +7,24 @@
     <!-- 加载 React 和必要库 -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- 核心：让浏览器支持 JSX -->
+    <!-- 让浏览器原生支持 JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        body { margin: 0; background: #F2F4F7; }
+        body { margin: 0; background: #F2F4F7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         * { box-sizing: border-box; }
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- 1. 引入你实际存在的 jsx 文件（这里已经改成了你截图中的 v2） -->
+    <!-- 1. 引入修改后的 JSX 逻辑脚本 -->
     <script type="text/babel" src="./tripmate-v2.jsx"></script>
 
-    <!-- 2. 渲染组件 -->
+    <!-- 2. 渲染主入口组件 -->
     <script type="text/babel">
-        // 注意：确保你 tripmate-v2.jsx 里面的函数/组件名确实叫 TripMateV2
-        // 如果你的组件在 jsx 里叫 function App() {}，请把下面的 TripMateV2 改成 App
+        // 确保渲染在脚本加载完成之后执行
         ReactDOM.createRoot(document.getElementById('root')).render(
             React.createElement(TripMateV2)
         );
