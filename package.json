@@ -1,8 +1,7 @@
 {
   "name": "tripmate",
   "version": "1.0.0",
-  "dependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
-  }
+  "description": "TripMate Web App",
+  "dependencies": {},
+  "scripts": {}
 }
