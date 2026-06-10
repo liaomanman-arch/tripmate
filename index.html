@@ -1,1 +1,32 @@
-<!DOCTYPE html> <html lang="zh-CN"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>TripMate 旅行记账</title> <!-- 加载 React 和必要库 --> <script src="https://unpkg.com/react@18/umd/react.development.js"></script> <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script> <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script> <style> body { margin: 0; background: #F2F4F7; } * { box-sizing: border-box; } </style> </head> <body> <div id="root"></div> <script type="text/babel" src="./tripmate-v3.jsx"></script> <script type="text/babel"> ReactDOM.createRoot(document.getElementById('root')).render( React.createElement(TripMateV2) ); </script> </body> </html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripMate 旅行记账</title>
+    <!-- 加载 React 和必要库 -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- 核心：让浏览器支持 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { margin: 0; background: #F2F4F7; }
+        * { box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- 1. 引入你实际存在的 jsx 文件（这里已经改成了你截图中的 v2） -->
+    <script type="text/babel" src="./tripmate-v2.jsx"></script>
+
+    <!-- 2. 渲染组件 -->
+    <script type="text/babel">
+        // 注意：确保你 tripmate-v2.jsx 里面的函数/组件名确实叫 TripMateV2
+        // 如果你的组件在 jsx 里叫 function App() {}，请把下面的 TripMateV2 改成 App
+        ReactDOM.createRoot(document.getElementById('root')).render(
+            React.createElement(TripMateV2)
+        );
+    </script>
+</body>
+</html>
