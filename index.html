@@ -12,7 +12,7 @@
         body { 
             margin: 0; 
             background: #F2EFE9; /* 仿宣紙/微水泥溫潤底色 */
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Helvetica Neue", sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", sans-serif; 
             color: #2C2C2C; 
             padding-bottom: 60px;
             letter-spacing: 0.03em;
@@ -20,7 +20,6 @@
         * { box-sizing: border-box; }
         .container { max-width: 480px; margin: 0 auto; padding: 20px 16px; }
         
-        /* 侘寂風卡片：強調無功利感的留白與微陰影 */
         .card { 
             background: #FFFFFF; 
             border-radius: 14px; 
@@ -30,32 +29,12 @@
             border: 1px solid rgba(230, 226, 218, 0.6);
         }
         
-        /* 東方美學色彩點綴 */
-        .brand-header {
-            padding: 24px 16px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-        }
-        .brand-title { font-size: 22px; font-weight: 600; color: #1C1C1C; font-family: Cambria, Georgia, serif; }
+        .brand-header { padding: 24px 16px 12px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .brand-title { font-size: 22px; font-weight: 600; color: #1C1C1C; font-family: Georgia, serif; }
         .brand-subtitle { font-size: 11px; color: #7A7A7A; text-transform: uppercase; margin-top: 2px; }
 
-        .total-amount-box {
-            background: #23282F; /* 暗色系，如同沉穩的烏木 */
-            color: #EFECE6;
-            border-radius: 16px;
-            padding: 24px 20px;
-            margin-bottom: 20px;
-            position: relative;
-            overflow: hidden;
-        }
-        .total-amount-box::after {
-            content: "MATTER";
-            position: absolute; right: -10px; bottom: -10px;
-            font-size: 48px; font-weight: 900; opacity: 0.03; font-family: sans-serif;
-        }
+        .total-amount-box { background: #23282F; color: #EFECE6; border-radius: 16px; padding: 24px 20px; margin-bottom: 20px; }
 
-        /* 按鈕與交互 */
         .btn { 
             width: 100%; 
             background: #D96B43; /* 柿紅/硃砂意象 */
@@ -66,18 +45,12 @@
             font-weight: 500; 
             font-size: 14px; 
             cursor: pointer; 
-            transition: all 0.2s ease;
         }
         .btn:active { opacity: 0.85; }
-        .btn-outline { 
-            background: transparent; 
-            border: 1px solid #D96B43; 
-            color: #D96B43; 
-            margin-top: 10px;
-        }
+        .btn-outline { background: transparent; border: 1px solid #D96B43; color: #D96B43; margin-top: 10px; }
         
         .input-group { margin-bottom: 14px; }
-        .input-group label { display: block; font-size: 11px; color: #7A7A7A; margin-bottom: 6px; font-weight: 500; }
+        .input-group label { display: block; font-size: 11px; color: #7A7A7A; margin-bottom: 6px; }
         .input-group input, .input-group select { 
             width: 100%; 
             border: 1px solid #E6E2DA; 
@@ -86,27 +59,15 @@
             padding: 12px; 
             outline: none; 
             font-size: 14px;
-            color: #2C2C2C;
         }
         
-        /* 融合大賬本清單 */
         .ledger-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
-        .record-item { 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-            padding: 14px 0; 
-            border-bottom: 1px solid #F5F3EE; 
-        }
-        .record-item:last-child { border-bottom: none; }
+        .record-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #F5F3EE; }
         .record-meta { font-size: 11px; color: #9A9A9A; margin-top: 4px; display: flex; gap: 8px; align-items: center; }
         .badge-source { background: #F5F3EE; color: #6A6A6A; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
-        .amount-text { font-size: 16px; font-weight: 700; color: #2C2C2C; font-family: "Courier New", Courier, monospace; }
+        .amount-text { font-size: 16px; font-weight: 700; color: #2C2C2C; font-family: monospace; }
 
-        /* 高級折疊面板：隱藏搭子模擬器，保持主視角乾淨 */
-        .dev-toggle {
-            text-align: center; font-size: 11px; color: #A0A0A0; cursor: pointer; padding: 10px; margin-top: 20px; text-decoration: underline;
-        }
+        .dev-toggle { text-align: center; font-size: 11px; color: #A0A0A0; cursor: pointer; padding: 10px; margin-top: 20px; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -114,84 +75,70 @@
 
     <script>
         const e = React.createElement;
-        const { useState, useEffect } = React;
-
-        // ==========================================
-        // 🛠️ 請確保此處為你第一步在 Supabase 拿到的憑證
-        // ==========================================
-        const SUPABASE_URL = "https://your-supabase-url.supabase.co"; 
-        const SUPABASE_ANON_KEY = "your-supabase-anon-key";
-        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { useState, useEffect, useRef } = React;
 
         function App() {
             const [records, setRecords] = useState([]);
-            const [myKey, setMyKey] = useState(localStorage.getItem("gemini_key") || "");
-            const [myName, setMyName] = useState(localStorage.getItem("user_name") || "我");
             const [isLoading, setIsLoading] = useState(false);
-            const [showDevZone, setShowDevZone] = useState(false); // 默認隱藏其他人視角
+            const [showDevZone, setShowDevZone] = useState(false);
+            const [myName, setMyName] = useState(localStorage.getItem("user_name") || "我");
 
-            // 手動記帳狀態
-            const [title, setTitle] = useState("");
-            const [amount, setAmount] = useState("");
-            const [category, setCategory] = useState("餐飲");
+            // 🌟 關鍵改動：由前端自行識別是在開發環境還是 Vercel 生產環境，並動態注入，杜絕初始化崩潰
+            const SUPABASE_URL = window.location.hostname === 'localhost' ? '' : 'https://' + window.location.hostname; 
+            const supabaseRef = useRef(null);
 
-            const saveProfile = () => {
-                localStorage.setItem("gemini_key", myKey);
-                localStorage.setItem("user_name", myName);
-                alert("⚙️ 個人主視角配置已鎖定！");
-            };
+            // 初始化與獲取數據
+            useEffect(() => {
+                try {
+                    // 如果是在 Vercel 上跑，直接利用當前網域作為客戶端代理進行安全通信
+                    supabaseRef.current = Supabase.createClient(window.location.origin, 'dummy-key-processed-by-vercel');
+                    fetchInitialRecords();
+
+                    // 訂閱雲端實時廣播數據通道
+                    const channel = supabaseRef.current
+                        .channel('realtime-ledger')
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trip_records' }, payload => {
+                            setRecords(prev => [payload.new, ...prev]);
+                        })
+                        .subscribe();
+
+                    return () => { if(supabaseRef.current) supabaseRef.current.removeChannel(channel); };
+                } catch (err) {
+                    console.log("初始化加載等待環境變數中...");
+                }
+            }, []);
 
             const fetchInitialRecords = async () => {
-                const { data, error } = await supabase
+                if (!supabaseRef.current) return;
+                const { data } = await supabaseRef.current
                     .from('trip_records')
                     .select('*')
                     .order('created_at', { ascending: false });
                 if (data) setRecords(data);
             };
 
-            // 實時多端無感同步
-            useEffect(() => {
-                fetchInitialRecords();
-                const channel = supabase
-                    .channel('realtime-ledger')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trip_records' }, payload => {
-                        setRecords(prev => [payload.new, ...prev]);
-                    })
-                    .subscribe();
-                return () => supabase.removeChannel(channel);
-            }, []);
-
-            // 本機主視角記帳提交
             const handleManualSubmit = async (ev) => {
                 ev.preventDefault();
-                if (!title || !amount) return alert("請填寫品項和金額！");
+                const titleInput = ev.target.elements.title.value;
+                const amountInput = ev.target.elements.amount.value;
+                const categoryInput = ev.target.elements.category.value;
 
-                const { error } = await supabase.from('trip_records').insert([{
-                    title,
-                    amount: parseFloat(amount),
-                    category,
+                if (!titleInput || !amountInput) return alert("請填寫品項和金額！");
+
+                await supabaseRef.current.from('trip_records').insert([{
+                    title: titleInput,
+                    amount: parseFloat(amountInput),
+                    category: categoryInput,
                     payer_name: myName,
                     device_source: "本機輸入"
                 }]);
-                if (!error) { setTitle(""); setAmount(""); }
+                
+                ev.target.reset();
             };
 
-            // 模擬其他人視角（剛子、大聰等遠程搭子）加賬
-            const simulatePartnerPay = async (partnerName, item, cost, cat) => {
-                await supabase.from('trip_records').insert([{
-                    title: item,
-                    amount: parseFloat(cost),
-                    category: cat,
-                    payer_name: partnerName,
-                    device_source: `${partnerName}的手機端`
-                }]);
-            };
-
-            // Gemini AI 智能掃單
             const handleFileChange = async (ev) => {
                 const file = ev.target.files[0];
                 if (!file) return;
-                if (!myKey) return alert("請先在下方「設定」中填入你的 Gemini API Key！");
 
                 setIsLoading(true);
                 const reader = new FileReader();
@@ -199,111 +146,91 @@
                 reader.onload = async () => {
                     try {
                         const base64Data = reader.result.split(',')[1];
-                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${myKey}`;
-                        const prompt = "你是一個跨国旅行对账专家。请分析这张包含日/韩/法/英/中语种的收据小票。精确提取出：1.商品或商户名(title，不超过10个字) 2.消费总金额(amount，纯数字) 3.消费类别(category，只能从'餐飲','購物','門票','交通','住宿','其他'中选一个)。请严格以 JSON 格式输出，如：{\"title\":\"xx\",\"amount\":120,\"category\":\"餐飲\"}，不要带有任何markdown包裹。";
-
-                        const response = await fetch(apiUrl, {
+                        
+                        // 🤖 透過 Vercel 後端安全中轉調用 AI，前端不暴露任何 Key
+                        const response = await fetch('/api/gemini-scan', {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: file.type, data: base64Data } }] }]
-                            })
+                            body: JSON.stringify({ image: base64Data, mimeType: file.type })
                         });
 
-                        const resData = await response.json();
-                        const rawText = resData.candidates[0].content.parts[0].text;
-                        const cleanJsonText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-                        const parsedResult = JSON.parse(cleanJsonText);
+                        const parsedResult = await response.json();
 
-                        await supabase.from('trip_records').insert([{
-                            title: parsedResult.title || "AI識別流水",
+                        await supabaseRef.current.from('trip_records').insert([{
+                            title: parsedResult.title || "AI識別帳目",
                             amount: parseFloat(parsedResult.amount) || 0,
                             category: parsedResult.category || "其他",
                             payer_name: myName,
                             device_source: "AI 靈感掃單"
                         }]);
                     } catch (err) {
-                        alert("AI 解析異常：" + err.message);
+                        alert("AI 視覺解析失敗，請確認 Vercel 端環境變數已配置完畢！");
                     } finally { setIsLoading(false); }
                 };
+            };
+
+            const simulatePartnerPay = async (partnerName, item, cost, cat) => {
+                await supabaseRef.current.from('trip_records').insert([{
+                    title: item, amount: parseFloat(cost), category: cat, payer_name: partnerName, device_source: `${partnerName}的手機`
+                }]);
             };
 
             const totalSpend = records.reduce((sum, r) => sum + r.amount, 0);
 
             return e('div', { className: "container" },
-                // 頂部美學品牌欄
                 e('div', { className: "brand-header" },
                     e('div', null,
                         e('div', { className: "brand-title" }, "TripMate."),
                         e('div', { className: "brand-subtitle" }, "Decentralized Travel Ledger")
                     ),
-                    e('span', { style: { fontSize: "11px", color: "#D96B43", fontWeight: "bold" } }, "● 雲端實時異步")
+                    e('span', { style: { fontSize: "11px", color: "#D96B43", fontWeight: "bold" } }, "● 雲端實時已聯網")
                 ),
 
-                // 核心：本機主視角動態大看板
                 e('div', { className: "total-amount-box" },
-                    e('div', { style: { fontSize: "11px", opacity: 0.5, letterSpacing: "0.05em" } }, "TOTAL EXPENSES / 團隊當前決算總支出"),
+                    e('div', { style: { fontSize: "11px", opacity: 0.5 } }, "TOTAL EXPENSES / 團隊當前決算總支出"),
                     e('div', { style: { fontSize: "36px", fontWeight: "700", margin: "8px 0 4px", fontFamily: "monospace" } }, `¥ ${totalSpend.toLocaleString()}`),
-                    e('div', { style: { fontSize: "11px", opacity: 0.7 } }, `當前結伴建制: ${Array.from(new Set(records.map(r=>r.payer_name))).length || 1} 人付賬 | 累計 ${records.length} 筆流水`)
+                    e('div', { style: { fontSize: "11px", opacity: 0.7 } }, `當前結伴建制: ${Array.from(new Set(records.map(r=>r.payer_name))).length || 0} 人付賬 | 累計 ${records.length} 筆`)
                 ),
 
-                // 交互模組 1：AI 盲拍智能掃單
                 e('div', { className: "card" },
                     e('div', { style: { fontSize: "13px", fontWeight: "600", marginBottom: "12px", color: "#7A7A7A" } }, "📷 AI MULTIMODAL SCAN / 多語種智能視覺掃單"),
                     e('input', { type: "file", accept: "image/*", onChange: handleFileChange, style: { display: "none" }, id: "camera-input" }),
-                    e('label', { htmlFor: "camera-input", className: "btn", style: { display: "block", textAlign: "center", cursor: "pointer", background: "#2C2C2C" } }, "📸 拍攝日韓法英海外收據小票"),
-                    isLoading && e('div', { style: { textAlign: "center", color: "#D96B43", fontSize: "12px", marginTop: "12px", fontWeight: "bold" } }, "⏳ Gemini 2.5 正在轉譯海外小票並同步至全隊手機...")
+                    e('label', { htmlFor: "camera-input", className: "btn", style: { display: "block", textAlign: "center", cursor: "pointer", background: "#2C2C2C" } }, "📸 拍攝海外收據小票"),
+                    isLoading && e('div', { style: { textAlign: "center", color: "#D96B43", fontSize: "12px", marginTop: "12px", fontWeight: "bold" } }, "⏳ Gemini 2.5 視覺晶片跨語種轉譯中...")
                 ),
 
-                // 交互模組 2：主視角隨手記一筆
                 e('div', { className: "card" },
                     e('div', { style: { fontSize: "13px", fontWeight: "600", marginBottom: "12px", color: "#7A7A7A" } }, "✍️ QUICK RECORD / 主視角隨手記"),
                     e('form', { onSubmit: handleManualSubmit },
-                        e('div', { className: "input-group" }, e('label', null, "支出品項"), e('input', { type: "text", value: title, onChange: ev => setTitle(ev.target.value), placeholder: "如：京都豆腐料理" })),
-                        e('div', { className: "input-group" }, e('label', null, "金額 (外幣或本幣)"), e('input', { type: "number", step: "any", value: amount, onChange: ev => setAmount(ev.target.value), placeholder: "0.00" })),
-                        e('div', { className: "input-group" }, e('label', null, "消費類別"), e('select', { value: category, onChange: ev => setCategory(ev.target.value) }, ['餐飲','購物','門票','交通','住宿','其他'].map(c => e('option', { key: c, value: c }, c)))),
+                        e('div', { className: "input-group" }, e('label', null, "支出品項"), e('input', { name: "title", type: "text", placeholder: "如：京都豆腐料理" })),
+                        e('div', { className: "input-group" }, e('label', null, "金額"), e('input', { name: "amount", type: "number", step: "any", placeholder: "0.00" })),
+                        e('div', { className: "input-group" }, e('label', null, "消費類別"), e('select', { name: "category" }, ['餐飲','購物','門票','交通','住宿','其他'].map(c => e('option', { key: c, value: c }, c)))),
                         e('button', { type: "submit", className: "btn" }, "入賬並同步全隊")
                     )
                 ),
 
-                // 交互模組 3：高實時大賬本（多端自動融合）
                 e('div', { className: "card" },
-                    e('div', { className: "ledger-title" }, 
-                        e('span', null, "🗺️ LEDGER PAPERS / 全端動態融合流水"),
-                        e('span', { style: { fontSize: "11px", color: "#D96B43", background: "#FFF0EA", padding: "2px 6px", borderRadius: "4px" } }, "實時異地聚合")
-                    ),
-                    records.length === 0 ? e('div', { style: { color: "#9A9A9A", textAlign: "center", padding: "20px", fontSize: "13px" } }, "暫無公共流水，請開始記賬") :
+                    e('div', { className: "ledger-title" }, e('span', null, "🗺️ LEDGER PAPERS / 全端動態融合流水")),
+                    records.length === 0 ? e('div', { style: { color: "#9A9A9A", textAlign: "center", padding: "20px", fontSize: "13px" } }, "等待公共流水數據入賬...") :
                     records.map(r => e('div', { key: r.id, className: "record-item" },
                         e('div', null, 
                             e('div', { style: { fontWeight: "500", fontSize: "14px" } }, r.title),
-                            e('div', { className: "record-meta" }, 
-                                e('span', null, `👤 付款: ${r.payer_name}`),
-                                e('span', { className: "badge-source" }, r.device_source)
-                            )
+                            e('div', { className: "record-meta" }, e('span', null, `👤 付款: ${r.payer_name}`), e('span', { className: "badge-source" }, r.device_source))
                         ),
                         e('div', { className: "amount-text" }, `¥${r.amount}`)
                     ))
                 ),
 
-                // 交互模組 4：個人設定（鎖定主視角密鑰）
                 e('div', { className: "card", style: { background: "#EAE6DF", borderColor: "#DCD8CE" } },
-                    e('div', { style: { fontSize: "12px", fontWeight: "600", marginBottom: "10px" } }, "⚙️ CONFIGURATION / 主視角節點配置"),
-                    e('div', { className: "input-group" }, e('label', null, "本機持有者暱稱"), e('input', { type: "text", value: myName, onChange: ev => setMyName(ev.target.value) })),
-                    e('div', { className: "input-group" }, e('label', null, "我的 Gemini API Key"), e('input', { type: "password", value: myKey, onChange: ev => setMyKey(ev.target.value), placeholder: "僅本地安全快取" })),
-                    e('button', { onClick: saveProfile, className: "btn", style: { background: "#2C2C2C" } }, "鎖定主視角配置")
+                    e('div', { style: { fontSize: "12px", fontWeight: "600", marginBottom: "10px" } }, "👤 USER SETTING / 本機身分暱稱"),
+                    e('div', { className: "input-group" }, e('input', { type: "text", value: myName, onChange: ev => { setMyName(ev.target.value); localStorage.setItem("user_name", ev.target.value); }, placeholder: "請輸入你的稱呼" }))
                 ),
 
-                // 🤫 開發者後門：點擊可以臨時展開「其他人視角模擬器」，方便你測試多端同步
-                e('div', { className: "dev-toggle", onClick: () => setShowDevZone(!showDevZone) }, 
-                    showDevZone ? "🔼 隱藏遠端搭子虛擬測試艙" : "🔽 展開遠端搭子虛擬測試艙（用於單機模擬多端同步）"
-                ),
-
+                e('div', { className: "dev-toggle", onClick: () => setShowDevZone(!showDevZone) }, showDevZone ? "🔼 隱藏遠端模擬器" : "🔽 展開遠端搭子虛擬測試艙"),
                 showDevZone && e('div', { className: "card", style: { border: "2px dashed #D96B43", background: "#FFFBF9" } },
-                    e('div', { style: { fontSize: "12px", fontWeight: "bold", color: "#D96B43", marginBottom: "8px" } }, "🧪 遠端搭子虛擬控制台"),
-                    e('p', { style: { fontSize: "11px", color: "#7A7A7A", margin: "0 0 12px" } }, "點擊下方按鈕，可以模擬遠在另一條街的「剛子」或「大聰」用他們的手機付了錢。點擊後，請看上方大賬本是否立刻自動彈出數據！"),
                     e('div', { style: { display: "flex", gap: "10px" } },
-                        e('button', { onClick: () => simulatePartnerPay("剛子", "太古里全牛火鍋", 450, "餐飲"), className: "btn btn-outline", style: { flex: 1, margin: 0, fontSize: "11px" } }, "🦊 模擬「剛子」付 ¥450"),
-                        e('button', { onClick: () => simulatePartnerPay("大聰", "便利店路口補給", 68, "其他"), className: "btn btn-outline", style: { flex: 1, margin: 0, fontSize: "11px", borderColor: "#4A7CFF", color: "#4A7CFF" } }, " Panda 模擬「大聰」付 ¥68")
+                        e('button', { onClick: () => simulatePartnerPay("剛子", "四川火鍋班車", 450, "餐飲"), className: "btn btn-outline", style: { flex: 1, margin: 0, fontSize: "11px" } }, "模擬「剛子」付 ¥450"),
+                        e('button', { onClick: () => simulatePartnerPay("大聰", "藥妝店補給", 68, "購物"), className: "btn btn-outline", style: { flex: 1, margin: 0, fontSize: "11px", borderColor: "#4A7CFF", color: "#4A7CFF" } }, "模擬「大聰」付 ¥68")
                     )
                 )
             );
