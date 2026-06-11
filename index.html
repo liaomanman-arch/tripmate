@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TripMate 旅行记账 完全体</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 引入最稳定的 React UMD 生产环境包 -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <style>
         body { margin: 0; background: #F2F4F7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         * { box-sizing: border-box; }
@@ -19,15 +19,10 @@
             100% { top: 0%; opacity: 0.3; }
         }
         .scanner-line {
-            position: absolute;
-            left: 0; right: 0;
-            height: 4px;
+            position: absolute; left: 0; right: 0; height: 4px;
             background: linear-gradient(90deg, transparent, #FF6B2B, transparent);
-            box-shadow: 0 0 15px #FF6B2B;
-            animation: scanMove 2s infinite linear;
+            box-shadow: 0 0 15px #FF6B2B; animation: scanMove 2s infinite linear;
         }
-
-        /* 碰一碰激活动画 */
         @keyframes bumpPulse {
             0% { transform: scale(1); opacity: 0.5; }
             50% { transform: scale(1.1); opacity: 1; }
@@ -39,7 +34,9 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
+    <script>
+        // 放弃 JSX，使用更底层稳定的 React.createElement，从根本上解决空白和转圈问题
+        const e = React.createElement;
         const { useState, useMemo } = React;
 
         // ─── 1. DESIGN TOKENS ───
@@ -66,35 +63,36 @@
         const MEMBER_COLORS = [C.orange, C.blue, C.green, C.yellow, "#9B59B6", "#E74C3C", "#1ABC9C", "#34495E"];
         const SOCIAL_TAGS = ["攻略狂魔", "财务担当", "无情拍照机", "躺平专业户", "豪爽金主", "特种兵团长"];
 
-        // 初始数据
         const INITIAL_MEMBERS = [
           { id: 1, name: "刚子", emoji: "🦊", color: C.orange, tag: "财务担当", bio: "本团唯一清醒的算账机器。" },
           { id: 2, name: "大聪", emoji: "🐼", color: C.blue, tag: "无情拍照机", bio: "负责出片，别让我算账就行。" },
           { id: 3, name: "小雨", emoji: "🐨", color: C.green, tag: "躺平专业户", bio: "跟着哥哥姐姐混，上车睡觉下车拍照。" }
         ];
 
-        // ─── 2. UI UTILS ───
+        // ─── 2. UI UTILS COMPONENTS ───
         function Card({ children, style, onClick }) {
-          return (
-            <div onClick={onClick} style={{ background: C.card, borderRadius: 18, padding: 18, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}>{children}</div>
-          );
+          return e('div', {
+            onClick,
+            style: { background: C.card, borderRadius: 18, padding: 18, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }
+          }, children);
         }
+
         function Tag({ label, color, bg }) {
-          return (
-            <span style={{ fontSize: 11, fontWeight: 700, color: color || C.orange, background: bg || C.orangeLight, borderRadius: 8, padding: "3px 8px", display: "inline-block" }}>{label}</span>
-          );
+          return e('span', {
+            style: { fontSize: 11, fontWeight: 700, color: color || C.orange, background: bg || C.orangeLight, borderRadius: 8, padding: "3px 8px", display: "inline-block" }
+          }, label);
         }
+
         function MemberDot({ member, size = 36 }) {
           if (!member) return null;
-          return (
-            <div style={{ width: size, height: size, borderRadius: "50%", background: member.color + "22", border: `2.5px solid ${member.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.45, flexShrink: 0 }}>{member.emoji}</div>
-          );
+          return e('div', {
+            style: { width: size, height: size, borderRadius: "50%", background: member.color + "22", border: `2.5px solid ${member.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.45, flexShrink: 0 }
+          }, member.emoji);
         }
+
         function ProgressBar({ pct, color, height = 8 }) {
-          return (
-            <div style={{ background: C.border, borderRadius: 99, height, overflow: "hidden" }}>
-              <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: color || C.green, borderRadius: 99, transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)" }} />
-            </div>
+          return e('div', { style: { background: C.border, borderRadius: 99, height, overflow: "hidden" } },
+            e('div', { style: { width: `${Math.min(pct, 100)}%`, height: "100%", background: color || C.green, borderRadius: 99, transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)" } })
           );
         }
 
@@ -117,46 +115,42 @@
             setAmount(""); setTitle(""); setCategory("餐饮"); onClose();
           };
 
-          return (
-            <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" }}>
-              <div style={{ background: C.card, width: "100%", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                  <span style={{ fontSize: 18, fontWeight: 800 }}>➕ 随手记 (Day {currentDay})</span>
-                  <span onClick={onClose} style={{ fontSize: 24, color: C.sub, cursor: "pointer" }}>✕</span>
-                </div>
-                <form onSubmit={handleSubmit}>
-                  <input type="number" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} style={{ width: "100%", border: "none", borderBottom: `2px solid ${C.border}`, fontSize: 36, fontWeight: 900, color: C.orange, padding: "8px 0", outline: "none", marginBottom: 20 }} autoFocus />
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 8, display: "block" }}>账目品项</label>
-                    <input type="text" placeholder="品项名称" value={title} onChange={e => setTitle(e.target.value)} style={{ width: "100%", background: C.bg, border: "none", borderRadius: 12, padding: "12px 16px", fontSize: 15, outline: "none" }} />
-                  </div>
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 8, display: "block" }}>消费类别</label>
-                    <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }} className="no-scroll">
-                      {CATEGORIES.map(cat => (
-                        <div key={cat} onClick={() => setCategory(cat)} style={{ padding: "8px 16px", borderRadius: 10, background: category === cat ? CAT_COLORS[cat] + "15" : C.bg, border: `2px solid ${category === cat ? CAT_COLORS[cat] : "transparent"}`, color: category === cat ? CAT_COLORS[cat] : C.ink, fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>{CAT_ICONS[cat]} {cat}</div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ marginBottom: 24 }}>
-                    <label style={{ fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 8, display: "block" }}>付款人</label>
-                    <div style={{ display: "flex", gap: 12, overflowX: "auto" }} className="no-scroll">
-                      {members.map(m => (
-                        <div key={m.id} onClick={() => setPayerId(m.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 12, background: payerId === m.id ? m.color + "15" : C.bg, border: `2px solid ${payerId === m.id ? m.color : "transparent"}`, cursor: "pointer", whiteSpace: "nowrap" }}>
-                          <MemberDot member={m} size={24} />
-                          <span style={{ fontSize: 13, fontWeight: 700 }}>{m.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <button type="submit" style={{ width: "100%", background: C.orange, color: "#fff", border: "none", borderRadius: 14, padding: "14px", fontSize: 16, fontWeight: 800 }}>确认记账</button>
-                </form>
-              </div>
-            </div>
+          return e('div', { style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-end", zIndex: 1000, backdropFilter: "blur(4px)" } },
+            e('div', { style: { background: C.card, width: "100%", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 } },
+              e('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } },
+                e('span', { style: { fontSize: 18, fontWeight: 800 } }, `➕ 随手记 (Day ${currentDay})`),
+                e('span', { onClick: onClose, style: { fontSize: 24, color: C.sub, cursor: "pointer" } }, "✕")
+              ),
+              e('form', { onSubmit: handleSubmit },
+                e('input', { type: "number", placeholder: "0.00", value: amount, onChange: ev => setAmount(ev.target.value), style: { width: "100%", border: "none", borderBottom: `2px solid ${C.border}`, fontSize: 36, fontWeight: 900, color: C.orange, padding: "8px 0", outline: "none", marginBottom: 20 }, autoFocus: true }),
+                e('div', { style: { marginBottom: 16 } },
+                  e('label', { style: { fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 8, display: "block" } }, "账目品项"),
+                  e('input', { type: "text", placeholder: "品项名称", value: title, onChange: ev => setTitle(ev.target.value), style: { width: "100%", background: C.bg, border: "none", borderRadius: 12, padding: "12px 16px", fontSize: 15, outline: "none" } })
+                ),
+                e('div', { style: { marginBottom: 16 } },
+                  e('label', { style: { fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 8, display: "block" } }, "消费类别"),
+                  e('div', { className: "no-scroll", style: { display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 } },
+                    CATEGORIES.map(cat => e('div', {
+                      key: cat, onClick: () => setCategory(cat),
+                      style: { padding: "8px 16px", borderRadius: 10, background: category === cat ? CAT_COLORS[cat] + "15" : C.bg, border: `2px solid ${category === cat ? CAT_COLORS[cat] : "transparent"}`, color: category === cat ? CAT_COLORS[cat] : C.ink, fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }
+                    }, `${CAT_ICONS[cat]} ${cat}`))
+                  )
+                ),
+                e('div', { style: { marginBottom: 24 } },
+                  e('label', { style: { fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 8, display: "block" } }, "付款人"),
+                  e('div', { className: "no-scroll", style: { display: "flex", gap: 12, overflowX: "auto" } },
+                    members.map(m => e('div', {
+                      key: m.id, onClick: () => setPayerId(m.id),
+                      style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 12, background: payerId === m.id ? m.color + "15" : C.bg, border: `2px solid ${payerId === m.id ? m.color : "transparent"}`, cursor: "pointer", whiteSpace: "nowrap" }
+                    }, e(MemberDot, { member: m, size: 24 }), e('span', { style: { fontSize: 13, fontWeight: 700 } }, m.name)))
+                  )
+                ),
+                e('button', { type: "submit", style: { width: "100%", background: C.orange, color: "#fff", border: "none", borderRadius: 14, padding: "14px", fontSize: 16, fontWeight: 800 } }, "确认记账")
+              )
+            )
           );
         }
 
-        // 新增：搭子个人名片与详细头像设置窗口
         function MemberProfileModal({ member, isOpen, onClose, onUpdate }) {
           if (!isOpen || !member) return null;
           const [name, setName] = useState(member.name);
@@ -164,555 +158,281 @@
           const [tag, setTag] = useState(member.tag || "自由人");
           const [bio, setBio] = useState(member.bio || "这个人很懒，什么都没写~");
 
-          const handleSave = () => {
-            onUpdate({ ...member, name, emoji, tag, bio });
-            onClose();
-          };
-
-          return (
-            <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, backdropFilter: "blur(5px)", padding: 20 }}>
-              <div style={{ background: C.card, width: "100%", maxWidth: 360, borderRadius: 24, padding: 24, position: "relative" }}>
-                <span onClick={onClose} style={{ position: "absolute", right: 20, top: 20, fontSize: 20, color: C.sub, cursor: "pointer" }}>✕</span>
-                <div style={{ textAlign: "center", marginBottom: 20 }}>
-                  <div style={{ width: 70, height: 70, borderRadius: "50%", background: member.color + "15", border: `3px solid ${member.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 12px" }}>{emoji}</div>
-                  <span style={{ fontSize: 12, color: C.blue, fontWeight: 700, background: C.blueLight, padding: "2px 8px", borderRadius: 6 }}>旅人数字档案 ID: #{member.id.toString().slice(-4)}</span>
-                </div>
-
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginBottom: 16 }}>
-                  {MEMBER_EMOJIS.slice(0, 6).map(e => (
-                    <span key={e} onClick={() => setEmoji(e)} style={{ fontSize: 22, cursor: "pointer", padding: 6, background: emoji === e ? C.border : "transparent", borderRadius: 8 }}>{e}</span>
-                  ))}
-                </div>
-
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 11, color: C.sub, fontWeight: 700, display: "block", marginBottom: 4 }}>搭子昵称</label>
-                  <input type="text" value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", border: `1px solid ${C.border}`, padding: "10px 14px", borderRadius: 10, fontSize: 14, fontWeight: 700, outline: "none" }} />
-                </div>
-
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 11, color: C.sub, fontWeight: 700, display: "block", marginBottom: 4 }}>团队角色社交标签</label>
-                  <select value={tag} onChange={e => setTag(e.target.value)} style={{ width: "100%", border: `1px solid ${C.border}`, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 700, outline: "none" }}>
-                    {SOCIAL_TAGS.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ fontSize: 11, color: C.sub, fontWeight: 700, display: "block", marginBottom: 4 }}>个性签名 (旅途宣言)</label>
-                  <textarea value={bio} onChange={e => setBio(e.target.value)} style={{ width: "100%", border: `1px solid ${C.border}`, padding: "10px", borderRadius: 10, fontSize: 12, outline: "none", height: 60, resize: "none" }} />
-                </div>
-
-                <button onClick={handleSave} style={{ width: "100%", background: C.ink, color: "#fff", border: "none", borderRadius: 12, padding: 12, fontWeight: 800, fontSize: 14 }}>保存搭子人设</button>
-              </div>
-            </div>
+          return e('div', { style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, backdropFilter: "blur(5px)", padding: 20 } },
+            e('div', { style: { background: C.card, width: "100%", maxWidth: 360, borderRadius: 24, padding: 24, position: "relative" } },
+              e('span', { onClick: onClose, style: { position: "absolute", right: 20, top: 20, fontSize: 20, color: C.sub, cursor: "pointer" } }, "✕"),
+              e('div', { style: { textAlign: "center", marginBottom: 20 } },
+                e('div', { style: { width: 70, height: 70, borderRadius: "50%", background: member.color + "15", border: `3px solid ${member.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 12px" } }, emoji),
+                e('span', { style: { fontSize: 12, color: C.blue, fontWeight: 700, background: C.blueLight, padding: "2px 8px", borderRadius: 6 } }, `旅人数字档案 ID: #${member.id.toString().slice(-4)}`)
+              ),
+              e('div', { style: { display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginBottom: 16 } },
+                MEMBER_EMOJIS.slice(0, 6).map(eStr => e('span', { key: eStr, onClick: () => setEmoji(eStr), style: { fontSize: 22, cursor: "pointer", padding: 6, background: emoji === eStr ? C.border : "transparent", borderRadius: 8 } }, eStr))
+              ),
+              e('div', { style: { marginBottom: 12 } },
+                e('label', { style: { fontSize: 11, color: C.sub, fontWeight: 700, display: "block", marginBottom: 4 } }, "搭子昵称"),
+                e('input', { type: "text", value: name, onChange: ev => setName(ev.target.value), style: { width: "100%", border: `1px solid ${C.border}`, padding: "10px 14px", borderRadius: 10, fontSize: 14, fontWeight: 700, outline: "none" } })
+              ),
+              e('div', { style: { marginBottom: 12 } },
+                e('label', { style: { fontSize: 11, color: C.sub, fontWeight: 700, display: "block", marginBottom: 4 } }, "团队角色社交标签"),
+                e('select', { value: tag, onChange: ev => setTag(ev.target.value), style: { width: "100%", border: `1px solid ${C.border}`, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 700, outline: "none" } },
+                  SOCIAL_TAGS.map(t => e('option', { key: t, value: t }, t))
+                )
+              ),
+              e('div', { style: { marginBottom: 20 } },
+                e('label', { style: { fontSize: 11, color: C.sub, fontWeight: 700, display: "block", marginBottom: 4 } }, "个性签名"),
+                e('textarea', { value: bio, onChange: ev => setBio(ev.target.value), style: { width: "100%", border: `1px solid ${C.border}`, padding: "10px", borderRadius: 10, fontSize: 12, outline: "none", height: 60, resize: "none" } })
+              ),
+              e('button', { onClick: () => { onUpdate({ ...member, name, emoji, tag, bio }); onClose(); }, style: { width: "100%", background: C.ink, color: "#fff", border: "none", borderRadius: 12, padding: 12, fontWeight: 800, fontSize: 14 } }, "保存搭子人设")
+            )
           );
         }
 
-        // 🗺 视图：首页
+        // ─── 4. SCREENS ───
         function HomeScreen({ records, members, currentDay, setCurrentDay, onOpenAdd, note, setNote, totalDays, setTotalDays }) {
-          const totalBudget = 20000;
           const [isEditingDays, setIsEditingDays] = useState(false);
+          const totalBudget = 20000;
 
           const dayRecords = useMemo(() => records.filter(r => r.day === currentDay), [records, currentDay]);
           const tripTotal = useMemo(() => records.reduce((sum, r) => sum + r.amount, 0), [records]);
-          const budgetPct = useMemo(() => totalBudget > 0 ? Math.round((tripTotal / totalBudget) * 100) : 0, [tripTotal, totalBudget]);
+          const budgetPct = totalBudget > 0 ? Math.round((tripTotal / totalBudget) * 100) : 0;
+          const daysArray = Array.from({ length: totalDays }, (_, i) => i + 1);
 
-          const daysArray = useMemo(() => Array.from({ length: totalDays }, (_, i) => i + 1), [totalDays]);
-
-          return (
-            <div style={{ padding: "16px 16px 90px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, background: C.card, padding: "12px 16px", borderRadius: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.02)" }}>
-                <div>
-                  <span style={{ fontSize: 11, color: C.sub, fontWeight: 700, display: "block" }}>🗺 旅程时限配置</span>
-                  {isEditingDays ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                      <input type="number" value={totalDays} onChange={e => setTotalDays(Math.max(1, parseInt(e.target.value) || 1))} onBlur={() => setIsEditingDays(false)} style={{ width: 60, padding: "4px 8px", fontSize: 15, fontWeight: 800, borderRadius: 8, border: `2px solid ${C.orange}`, outline: "none" }} autoFocus />
-                      <span style={{ fontSize: 13, fontWeight: 700 }}>天行程</span>
-                    </div>
-                  ) : (
-                    <span style={{ fontSize: 15, fontWeight: 800, color: C.ink, marginTop: 4, display: "inline-block" }}>新旅行计划 · <span style={{ color: C.orange }}>{totalDays} 天行程</span></span>
-                  )}
-                </div>
-                <button onClick={() => setIsEditingDays(!isEditingDays)} style={{ border: "none", background: C.bg, padding: "6px 12px", borderRadius: 10, fontSize: 11, fontWeight: 700, color: C.sub, cursor: "pointer" }}>
-                  {isEditingDays ? "确定" : "✍️ 自定义天数"}
-                </button>
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <div className="no-scroll" style={{ paddingBottom: 8 }}>
-                  {daysArray.map(d => (
-                    <div key={d} onClick={() => setCurrentDay(d)} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 56, height: 60, borderRadius: 14, background: currentDay === d ? C.orange : C.card, color: currentDay === d ? "#fff" : C.ink, boxShadow: "0 2px 8px rgba(0,0,0,0.02)", cursor: "pointer", transition: "all 0.2s", flexShrink: 0 }}>
-                      <span style={{ fontSize: 9, opacity: currentDay === d ? 0.8 : 0.5, fontWeight: 700 }}>DAY</span>
-                      <span style={{ fontSize: 16, fontWeight: 900, marginTop: 1 }}>{d}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Card style={{ marginBottom: 16, background: `linear-gradient(135deg, ${C.ink} 0%, #2C323F 100%)`, color: "#fff" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>当前旅程账本总结</span>
-                  <Tag label="本币 CNY" color="#fff" bg="rgba(255,255,255,0.15)" />
-                </div>
-                <div style={{ fontSize: 30, fontWeight: 900, marginBottom: 12, letterSpacing: -1 }}>
-                  ¥{tripTotal.toLocaleString()} <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>/ 预算上限 ¥{totalBudget.toLocaleString()}</span>
-                </div>
-                <ProgressBar pct={budgetPct} color={C.orange} />
-              </Card>
-
-              <Card style={{ marginBottom: 20, padding: "14px 18px" }}>
-                <div style={{ fontSize: 11, color: C.sub, fontWeight: 800, marginBottom: 4 }}>📌 Day {currentDay} 随行备忘录</div>
-                <input type="text" value={note[currentDay] || ""} onChange={e => {
-                  const val = e.target.value;
-                  setNote(prev => ({ ...prev, [currentDay]: val }));
-                }} placeholder="输入今天的目的地或临时想法..." style={{ width: "100%", border: "none", padding: "4px 0", fontSize: 13, fontWeight: 700, color: C.ink, outline: "none", background: "transparent" }} />
-              </Card>
-
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 14, fontWeight: 800, color: C.ink }}>Day {currentDay} 消费流水 ({dayRecords.length} 笔)</span>
-                <button onClick={onOpenAdd} style={{ background: C.orangeLight, border: "none", borderRadius: 10, padding: "6px 12px", color: C.orange, fontWeight: 800, fontSize: 12 }}>➕ 随手记</button>
-              </div>
-
-              {dayRecords.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "50px 0", color: C.sub, fontSize: 13, fontWeight: 600, background: C.card, borderRadius: 16 }}>
-                  🫙 账本干干净净，一笔数据都没有哦<br/>
-                  <span style={{ fontSize: 11, opacity: 0.6, display: "inline-block", marginTop: 6 }}>点击上方按钮或下方「扫单」开始记账吧</span>
-                </div>
-              ) : (
-                dayRecords.map(r => (
-                  <Card key={r.id} style={{ marginBottom: 10, padding: 14 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 10, background: CAT_COLORS[r.category] + "15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{CAT_ICONS[r.category] || "📦"}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, color: C.ink, fontSize: 14 }}>{r.title}</div>
-                        <span style={{ fontSize: 11, color: C.sub, display: "inline-block", marginTop: 2 }}>{r.store} · {members.find(m => m.id === r.memberId)?.name || "未知"}代付</span>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 16, fontWeight: 900, color: C.ink }}>¥{r.amount}</div>
-                        <Tag label={r.lang} color={C.sub} bg={C.border} />
-                      </div>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
+          return e('div', { style: { padding: "16px 16px 90px" } },
+            e('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, background: C.card, padding: "12px 16px", borderRadius: 16 } },
+              e('div', { style: { display: "flex", flexDirection: "column" } },
+                e('span', { style: { fontSize: 11, color: C.sub, fontWeight: 700 } }, "🗺 旅程时限配置"),
+                isEditingDays ? e('div', { style: { display: "flex", alignItems: "center", gap: 6, marginTop: 4 } },
+                  e('input', { type: "number", value: totalDays, onChange: ev => setTotalDays(Math.max(1, parseInt(ev.target.value) || 1)), onBlur: () => setIsEditingDays(false), style: { width: 60, padding: "4px 8px", fontSize: 15, fontWeight: 800, borderRadius: 8, border: `2px solid ${C.orange}`, outline: "none" }, autoFocus: true }),
+                  e('span', { style: { fontSize: 13, fontWeight: 700 } }, "天行程")
+                ) : e('span', { style: { fontSize: 15, fontWeight: 800, color: C.ink, marginTop: 4 } }, `新旅行计划 · `, e('span', { style: { color: C.orange } }, `${totalDays} 天行程`))
+              ),
+              e('button', { onClick: () => setIsEditingDays(!isEditingDays), style: { border: "none", background: C.bg, padding: "6px 12px", borderRadius: 10, fontSize: 11, fontWeight: 700, color: C.sub } }, isEditingDays ? "确定" : "✍️ 自定义天数")
+            ),
+            e('div', { style: { marginBottom: 16 } },
+              e('div', { className: "no-scroll", style: { paddingBottom: 8, display: "flex", gap: 10, overflowX: "auto" } },
+                daysArray.map(d => e('div', {
+                  key: d, onClick: () => setCurrentDay(d),
+                  style: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 56, height: 60, borderRadius: 14, background: currentDay === d ? C.orange : C.card, color: currentDay === d ? "#fff" : C.ink, cursor: "pointer", transition: "all 0.2s", flexShrink: 0 }
+                }, e('span', { style: { fontSize: 9, opacity: currentDay === d ? 0.8 : 0.5, fontWeight: 700 } }, "DAY"), e('span', { style: { fontSize: 16, fontWeight: 900, marginTop: 1 } }, d)))
+              )
+            ),
+            e(Card, { style: { marginBottom: 16, background: `linear-gradient(135deg, ${C.ink} 0%, #2C323F 100%)`, color: "#fff" } },
+              e('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 } },
+                e('span', { style: { fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 600 } }, "当前旅程账本总结"),
+                e(Tag, { label: "本币 CNY", color: "#fff", bg: "rgba(255,255,255,0.15)" })
+              ),
+              e('div', { style: { fontSize: 30, fontWeight: 900, marginBottom: 12, letterSpacing: -1 } },
+                `¥${tripTotal.toLocaleString()} `, e('span', { style: { fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: 500 } }, `/ 预算上限 ¥${totalBudget.toLocaleString()}`)
+              ),
+              e(ProgressBar, { pct: budgetPct, color: C.orange })
+            ),
+            e(Card, { style: { marginBottom: 20, padding: "14px 18px" } },
+              e('div', { style: { fontSize: 11, color: C.sub, fontWeight: 800, marginBottom: 4 } }, `📌 Day ${currentDay} 随行备忘录`),
+              e('input', { type: "text", value: note[currentDay] || "", onChange: ev => { const v = ev.target.value; setNote(p => ({ ...p, [currentDay]: v })); }, placeholder: "输入今天的目的地或临时想法...", style: { width: "100%", border: "none", padding: "4px 0", fontSize: 13, fontWeight: 700, color: C.ink, outline: "none", background: "transparent" } })
+            ),
+            e('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 } },
+              e('span', { style: { fontSize: 14, fontWeight: 800, color: C.ink } }, `Day ${currentDay} 消费流水 (${dayRecords.length} 笔)`),
+              e('button', { onClick: onOpenAdd, style: { background: C.orangeLight, border: "none", borderRadius: 10, padding: "6px 12px", color: C.orange, fontWeight: 800, fontSize: 12 } }, "➕ 随手记")
+            ),
+            dayRecords.length === 0 ? e('div', { style: { textAlign: "center", padding: "50px 0", color: C.sub, fontSize: 13, fontWeight: 600, background: C.card, borderRadius: 16 } }, "🫙 账本干干净净，一笔数据都没有哦") :
+            dayRecords.map(r => e(Card, { key: r.id, style: { marginBottom: 10, padding: 14 } },
+              e('div', { style: { display: "flex", alignItems: "center", gap: 12 } },
+                e('div', { style: { width: 38, height: 38, borderRadius: 10, background: CAT_COLORS[r.category] + "15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 } }, CAT_ICONS[r.category] || "📦"),
+                e('div', { style: { flex: 1 } },
+                  e('div', { style: { fontWeight: 700, color: C.ink, fontSize: 14 } }, r.title),
+                  e('span', { style: { fontSize: 11, color: C.sub, display: "inline-block", marginTop: 2 } }, `${r.store} · ${(members.find(m => m.id === r.memberId)?.name || "未知")}代付`)
+                ),
+                e('div', { style: { textAlign: "right" } },
+                  e('div', { style: { fontSize: 16, fontWeight: 900, color: C.ink } }, `¥${r.amount}`),
+                  e(Tag, { label: r.lang, color: C.sub, bg: C.border })
+                )
+              )
+            ))
           );
         }
 
-        // 📒 视图：流水
         function RecordsScreen({ records, members }) {
-          return (
-            <div style={{ padding: "16px 16px 90px" }}>
-              <div style={{ fontSize: 16, fontWeight: 900, color: C.ink, marginBottom: 16 }}>全量流水大账本 ({records.length})</div>
-              {records.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "40px 0", color: C.sub, fontSize: 13 }}>暂无全局流水</div>
-              ) : (
-                records.map(r => (
-                  <Card key={r.id} style={{ marginBottom: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: C.orangeLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{CAT_ICONS[r.category] || "📦"}</div>
-                      <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{r.title}</div><div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>Day {r.day} · {r.store} · {members.find(m => m.id === r.memberId)?.name}代付</div></div>
-                      <div style={{ fontSize: 16, fontWeight: 900 }}>¥{r.amount}</div>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
+          return e('div', { style: { padding: "16px 16px 90px" } },
+            e('div', { style: { fontSize: 16, fontWeight: 900, color: C.ink, marginBottom: 16 } }, `全量流水大账本 (${records.length})`),
+            records.length === 0 ? e('div', { style: { textAlign: "center", padding: "40px 0", color: C.sub, fontSize: 13 } }, "暂无全局流水") :
+            records.map(r => e(Card, { key: r.id, style: { marginBottom: 10 } },
+              e('div', { style: { display: "flex", alignItems: "center", gap: 12 } },
+                e('div', { style: { width: 36, height: 36, borderRadius: 10, background: C.orangeLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 } }, CAT_ICONS[r.category] || "📦"),
+                e('div', { style: { flex: 1 } }, e('div', { style: { fontWeight: 700, fontSize: 14 } }, r.title), e('div', { style: { fontSize: 11, color: C.sub, marginTop: 2 } }, `Day ${r.day} · ${r.store} · ${members.find(m => m.id === r.memberId)?.name}代付`)),
+                e('div', { style: { fontSize: 16, fontWeight: 900 } }, `¥${r.amount}`)
+              )
+            ))
           );
         }
 
-        // 📷 视图：扫单
         function ScanScreen({ currentDay, members, onAddScannedRecord }) {
-          const [image, setImage] = useState(null);
           const [scanState, setScanState] = useState("idle"); 
           const [selectedPayer, setSelectedPayer] = useState(members[0]?.id || "");
           const [activeScene, setActiveScene] = useState("domestic");
 
           const SCENE_DATA = {
-            domestic: {
-              label: "🇨🇳 国内物美/永辉超市纸质小票",
-              store: "物美量贩总店", title: "金龙鱼调和油 + 珍品五常大米", category: "其他",
-              amountRaw: "¥158.50", amountCNY: 158.5, lang: "CNY (本币)",
-              details: ["1. 金龙鱼黄金比例调和油 5L ¥89.00", "2. 臻选五常香米 5kg ¥69.50"]
-            },
-            digital_pay: {
-              label: "📱 微信/支付宝/端内电子支付截图",
-              store: "喜茶（上海新天地店）", title: "多肉葡萄双人下午茶套餐", category: "餐饮",
-              amountRaw: "¥38.00", amountCNY: 38, lang: "微信支付凭证",
-              details: ["商户单号: 420000216...339", "支付方式: 招商银行信用卡(尾号88)", "交易时间: 15:32:10"]
-            },
-            overseas: {
-              label: "🇯🇵/🇺🇸 全球多语言外币小票 (自动换算)",
-              store: "MatsuKiyo (マツモトキヨシ薬局)", title: "安耐晒防晒霜 + 龙角散润喉糖", category: "购物",
-              amountRaw: "¥4,680 JPY", amountCNY: 215, lang: "外币汇率换算(日元)",
-              details: ["1. ANESSA Perfect UV 60ml ¥2,980", "2. 龍角散ダイレクト 16包×3 ¥1,700", "⚠️ AI已按今日最新汇率 0.046 自动折算为本币"]
-            }
-          };
-
-          const handleFileChange = (e) => {
-            if (e.target.files && e.target.files[0]) {
-              setImage(URL.createObjectURL(e.target.files[0]));
-              setScanState("scene_select");
-            }
+            domestic: { label: "🇨🇳 国内物美/永辉超市纸质小票", store: "物美量贩总店", title: "金龙鱼调和油 + 珍品五常大米", category: "其他", amountCNY: 158.5, amountRaw: "¥158.50", lang: "CNY (本币)" },
+            digital_pay: { label: "📱 微信/支付宝/端内电子支付截图", store: "喜茶（上海新天地店）", title: "多肉葡萄双人下午茶套餐", category: "餐饮", amountCNY: 38, amountRaw: "¥38.00", lang: "微信支付凭证" },
+            overseas: { label: "🇯🇵/🇺🇸 全球多语言外币小票 (自动换算)", store: "MatsuKiyo 药局", title: "安耐晒防晒霜 + 龙角散", category: "购物", amountCNY: 215, amountRaw: "¥4,680 JPY", lang: "外币汇率自动换算" }
           };
 
           const startScanning = (sceneKey) => {
-            setActiveScene(sceneKey);
-            setScanState("scanning");
-            setTimeout(() => { setScanState("result"); }, 2500);
+            setActiveScene(sceneKey); setScanState("scanning");
+            setTimeout(() => { setScanState("result"); }, 2000);
           };
 
           const handleConfirm = () => {
-            const currentData = SCENE_DATA[activeScene];
+            const cur = SCENE_DATA[activeScene];
             onAddScannedRecord({
-              id: Date.now(), title: currentData.title, category: currentData.category,
-              method: "AI智能扫单", store: currentData.store, amount: currentData.amountCNY,
-              memberId: selectedPayer, day: currentDay,
-              time: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
-              lang: currentData.lang
+              id: Date.now(), title: cur.title, category: cur.category, method: "AI智能扫单", store: cur.store, amount: cur.amountCNY, memberId: selectedPayer, day: currentDay, time: "12:00", lang: cur.lang
             });
-            setImage(null); setScanState("idle");
+            setScanState("idle");
           };
 
-          return (
-            <div style={{ padding: "16px 16px 90px" }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 }}>📷 通识全场景 AI 扫单</div>
-              <div style={{ fontSize: 11, color: C.sub, marginBottom: 16 }}>AI 视觉一键全自动解构入账。</div>
-
-              {scanState === "idle" && (
-                <label style={{ display: "block" }}>
-                  <input type="file" accept="image/*" capture="camera" onChange={handleFileChange} style={{ display: "none" }} />
-                  <div style={{ border: `2.5px dashed ${C.orange}50`, height: 220, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: C.orangeLight, borderRadius: 20, cursor: "pointer" }}>
-                    <div style={{ fontSize: 44, marginBottom: 10 }}>📸</div>
-                    <span style={{ fontWeight: 800, fontSize: 14, color: C.ink }}>点击拍照 / 上传任何支付凭证</span>
-                  </div>
-                </label>
-              )}
-
-              {scanState === "scene_select" && (
-                <Card>
-                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12, textAlign: "center", color: C.orange }}>💡 模拟真实 AI 多模态分类</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {Object.keys(SCENE_DATA).map(key => (
-                      <button key={key} onClick={() => startScanning(key)} style={{ width: "100%", padding: "12px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, fontWeight: 700, color: C.ink, textAlign: "left", cursor: "pointer" }}>👉 {SCENE_DATA[key].label}</button>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {scanState === "scanning" && (
-                <Card style={{ position: "relative", height: 240, overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: C.ink }}>
-                  {image && <img src={image} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.35 }} />}
-                  <div className="scanner-line" />
-                  <div style={{ zIndex: 10, textAlign: "center", color: "#fff" }}>
-                    <div style={{ fontWeight: 800, fontSize: 14 }}>多模态正在智能读取...</div>
-                  </div>
-                </Card>
-              )}
-
-              {scanState === "result" && (
-                <div>
-                  <Card style={{ background: C.ink, color: "#fff", marginBottom: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 10, marginBottom: 12 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700 }}>🏢 {SCENE_DATA[activeScene].store}</span>
-                      <Tag label={SCENE_DATA[activeScene].lang} color={C.orange} bg={C.orangeLight} />
-                    </div>
-                    <div style={{ fontSize: 15, fontWeight: 800, margin: "4px 0 12px" }}>{SCENE_DATA[activeScene].title}</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, background: "rgba(255,255,255,0.06)", padding: 10, borderRadius: 12, marginBottom: 12 }}>
-                      <div><div style={{ fontSize: 16, fontWeight: 900, color: C.yellow }}>{SCENE_DATA[activeScene].amountRaw}</div></div>
-                      <div><div style={{ fontSize: 16, fontWeight: 900, color: C.green }}>¥{SCENE_DATA[activeScene].amountCNY}</div></div>
-                    </div>
-                  </Card>
-
-                  <Card style={{ marginBottom: 16, padding: 14 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 10 }}>确认本次代付人</div>
-                    <div style={{ display: "flex", gap: 10, overflowX: "auto" }} className="no-scroll">
-                      {members.map(m => (
-                        <div key={m.id} onClick={() => setSelectedPayer(m.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 12, background: selectedPayer === m.id ? m.color + "15" : C.bg, border: `2px solid ${selectedPayer === m.id ? m.color : "transparent"}`, cursor: "pointer", whiteSpace: "nowrap" }}>
-                          <span style={{ fontSize: 12, fontWeight: 700 }}>{m.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={() => setScanState("idle")} style={{ flex: 1, background: C.border, border: "none", padding: "14px", borderRadius: 14, fontWeight: 800, color: C.ink, cursor: "pointer" }}>重新拍摄</button>
-                    <button onClick={handleConfirm} style={{ flex: 2, background: C.orange, border: "none", padding: "14px", borderRadius: 14, fontWeight: 800, color: "#fff", cursor: "pointer" }}>确认入账 (Day {currentDay})</button>
-                  </div>
-                </div>
-              )}
-            </div>
+          return e('div', { style: { padding: "16px 16px 90px" } },
+            e('div', { style: { fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 } }, "📷 通识全场景 AI 扫单"),
+            e('div', { style: { fontSize: 11, color: C.sub, marginBottom: 16 } }, "AI 视觉一键全自动解构入账。"),
+            scanState === "idle" && e('div', {
+              onClick: () => setScanState("scene_select"),
+              style: { border: `2.5px dashed ${C.orange}50`, height: 220, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: C.orangeLight, borderRadius: 20, cursor: "pointer" }
+            }, e('div', { style: { fontSize: 44, marginBottom: 10 } }, "📸"), e('span', { style: { fontWeight: 800, fontSize: 14 } }, "点击模拟拍照读取单据")),
+            scanState === "scene_select" && e(Card, null,
+              e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 12, color: C.orange, textAlign: "center" } }, "💡 模拟真实 AI 多模态分类"),
+              Object.keys(SCENE_DATA).map(k => e('button', { key: k, onClick: () => startScanning(k), style: { width: "100%", padding: "12px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, fontWeight: 700, marginBottom: 8, textAlign: "left" } }, `👉 ${SCENE_DATA[k].label}`))
+            ),
+            scanState === "scanning" && e(Card, { style: { position: "relative", height: 200, display: "flex", alignItems: "center", justifyContent: "center", background: C.ink, color: "#fff" } },
+              e('div', { className: "scanner-line" }), e('div', null, "多模态视觉芯片解析中...")
+            ),
+            scanState === "result" && e('div', null,
+              e(Card, { style: { background: C.ink, color: "#fff", marginBottom: 16 } },
+                e('div', { style: { fontSize: 15, fontWeight: 800 } }, SCENE_DATA[activeScene].title),
+                e('div', { style: { fontSize: 24, fontWeight: 900, color: C.yellow, marginTop: 8 } }, `折合本币: ¥${SCENE_DATA[activeScene].amountCNY}`)
+              ),
+              e(Card, { style: { marginBottom: 16 } },
+                e('div', { style: { fontSize: 12, fontWeight: 800, marginBottom: 10 } }, "确认本次代付人"),
+                e('div', { style: { display: "flex", gap: 8 } }, members.map(m => e('button', { key: m.id, onClick: () => setSelectedPayer(m.id), style: { padding: "8px 12px", borderRadius: 10, background: selectedPayer === m.id ? C.orangeLight : C.bg, border: "none", fontWeight: 700 } }, m.name)))
+              ),
+              e('div', { style: { display: "flex", gap: 10 } },
+                e('button', { onClick: () => setScanState("idle"), style: { flex: 1, padding: 12, borderRadius: 12, background: C.border, border: "none" } }, "重拍"),
+                e('button', { onClick: handleConfirm, style: { flex: 2, padding: 12, borderRadius: 12, background: C.orange, color: "#fff", border: "none", fontWeight: 800 } }, "确认入账")
+              )
+            )
           );
         }
 
-        // 📊 视图：统计板块
         function StatsScreen({ records, members, isPlanB, planBFreeRiderId }) {
-          const totalSpend = useMemo(() => records.reduce((sum, r) => sum + r.amount, 0), [records]);
-          
-          const effectiveAAContractors = useMemo(() => {
-            if (!isPlanB || !planBFreeRiderId) return members;
-            return members.filter(m => m.id !== parseInt(planBFreeRiderId));
-          }, [members, isPlanB, planBFreeRiderId]);
-
-          const avgSpend = useMemo(() => {
-            if (effectiveAAContractors.length === 0) return 0;
-            return (totalSpend / effectiveAAContractors.length).toFixed(2);
-          }, [totalSpend, effectiveAAContractors]);
-
-          const catStats = useMemo(() => {
-            const stats = {}; CATEGORIES.forEach(c => stats[c] = 0);
-            records.forEach(r => { if (stats[r.category] !== undefined) stats[r.category] += r.amount; });
-            return stats;
-          }, [records]);
+          const totalSpend = records.reduce((sum, r) => sum + r.amount, 0);
+          const effectiveAAContractors = isPlanB && planBFreeRiderId ? members.filter(m => m.id !== parseInt(planBFreeRiderId)) : members;
+          const avgSpend = effectiveAAContractors.length > 0 ? (totalSpend / effectiveAAContractors.length).toFixed(2) : 0;
 
           const dynamicTransfers = useMemo(() => {
             if (records.length === 0 || effectiveAAContractors.length === 0) return [];
-            
             const paidMap = {}; members.forEach(m => paidMap[m.id] = 0);
             records.forEach(r => { if (paidMap[r.memberId] !== undefined) paidMap[r.memberId] += r.amount; });
-
             const perPersonCost = totalSpend / effectiveAAContractors.length;
-            
             const balances = members.map(m => {
               const isFreeRider = isPlanB && m.id === parseInt(planBFreeRiderId);
-              const myDue = isFreeRider ? 0 : perPersonCost;
-              return { id: m.id, name: m.name, net: paidMap[m.id] - myDue };
+              return { name: m.name, net: paidMap[m.id] - (isFreeRider ? 0 : perPersonCost) };
             });
-
             let creditors = balances.filter(b => b.net > 0.01).sort((a, b) => b.net - a.net);
             let debtors = balances.filter(b => b.net < -0.01).sort((a, b) => a.net - b.net);
-
             const transfers = []; let i = 0, j = 0;
             while (i < debtors.length && j < creditors.length) {
-              let debtor = debtors[i]; let creditor = creditors[j];
-              let amountToTransfer = Math.min(Math.abs(debtor.net), creditor.net);
-              if (amountToTransfer > 0.01) {
-                transfers.push({ from: debtor.name, to: creditor.name, amount: amountToTransfer.toFixed(2) });
-              }
-              debtor.net += amountToTransfer; creditor.net -= amountToTransfer;
-              if (Math.abs(debtor.net) < 0.01) i++; if (Math.abs(creditor.net) < 0.01) j++;
+              let d = debtors[i]; let c = creditors[j];
+              let amt = Math.min(Math.abs(d.net), c.net);
+              if (amt > 0.01) transfers.push({ from: d.name, to: c.name, amount: amt.toFixed(2) });
+              d.net += amt; c.net -= amt;
+              if (Math.abs(d.net) < 0.01) i++; if (Math.abs(c.net) < 0.01) j++;
             }
             return transfers;
           }, [records, members, totalSpend, effectiveAAContractors, isPlanB, planBFreeRiderId]);
 
-          if (records.length === 0) {
-            return (
-              <div style={{ padding: 16 }}>
-                <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 16 }}>📊 智能清账统计</div>
-                <Card style={{ color: C.sub, textAlign: "center", padding: "40px 0" }}>暂无账目数据，请在首页或扫单页记账后查看分析</Card>
-              </div>
-            );
-          }
-
-          return (
-            <div style={{ padding: "16px 16px 100px" }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 }}>📊 团队费用分账看板</div>
-              <div style={{ fontSize: 11, color: C.sub, marginBottom: 14 }}>
-                当前运行模式：{isPlanB ? `⚠️ 进阶 B 方案（免单模式）` : `✅ 标配 A 方案（全员绝对 AA）`}
-              </div>
-
-              <Card style={{ marginBottom: 16, background: isPlanB ? `linear-gradient(135deg, ${C.orange} 0%, #E65100 100%)` : `linear-gradient(135deg, ${C.blue} 0%, #355CC2 100%)`, color: "#fff" }}>
-                <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 700 }}>团队总开销</div>
-                <div style={{ fontSize: 32, fontWeight: 900, margin: "4px 0 10px" }}>¥{totalSpend.toLocaleString()}</div>
-                <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.2)", paddingTop: 10, fontSize: 12 }}>
-                  <span>👥 有效分摊人数: {effectiveAAContractors.length}人 / 共{members.length}人</span>
-                  <span style={{ color: C.yellow, fontWeight: 800 }}>👤 实际人均应付: ¥{avgSpend}</span>
-                </div>
-              </Card>
-
-              <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>⚖️ 智能结清转账方案</div>
-              <Card style={{ marginBottom: 20 }}>
-                {dynamicTransfers.length === 0 ? (
-                  <div style={{ textAlign: "center", color: C.green, fontWeight: 700, fontSize: 13 }}>当前垫付刚好扯平，谁都不欠谁！</div>
-                ) : (
-                  dynamicTransfers.map((t, idx) => (
-                    <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: idx !== dynamicTransfers.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                      <div style={{ fontSize: 13 }}><span style={{ color: C.red, fontWeight: 800 }}>{t.from}</span> 需转给 <span style={{ color: C.green, fontWeight: 800 }}>{t.to}</span></div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 15, fontWeight: 900 }}>¥{t.amount}</span></div>
-                    </div>
-                  ))
-                )}
-              </Card>
-
-              <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>🍰 各消费业态占比</div>
-              <Card>
-                {CATEGORIES.map(cat => {
-                  const amt = catStats[cat]; const pct = totalSpend > 0 ? Math.round((amt / totalSpend) * 100) : 0;
-                  return (
-                    <div key={cat} style={{ marginBottom: 12 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                        <span style={{ fontWeight: 700 }}>{CAT_ICONS[cat]} {cat}</span>
-                        <span style={{ color: C.sub }}>¥{amt.toFixed(1)} ({pct}%)</span>
-                      </div>
-                      <ProgressBar pct={pct} color={CAT_COLORS[cat]} height={6} />
-                    </div>
-                  );
-                })}
-              </Card>
-            </div>
+          return e('div', { style: { padding: "16px 16px 100px" } },
+            e('div', { style: { fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 } }, "📊 团队费用分账看板"),
+            e(Card, { style: { marginBottom: 16, background: `linear-gradient(135deg, ${C.blue} 0%, #355CC2 100%)`, color: "#fff" } },
+              e('div', { style: { fontSize: 32, fontWeight: 900 } }, `¥${totalSpend.toLocaleString()}`),
+              e('div', { style: { marginTop: 8, fontSize: 12, opacity: 0.9 } }, `实际人均应付: ¥${avgSpend}`)
+            ),
+            e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 10 } }, "⚖️ 智能结清转账方案"),
+            e(Card, null, dynamicTransfers.length === 0 ? "🎉 账目已全部扯平" : dynamicTransfers.map((t, x) => e('div', { key: x, style: { padding: "8px 0", borderBottom: `1px solid ${C.border}` } }, `${t.from} ➡️ ${t.to} : ¥${t.amount}`)))
           );
         }
 
-        // 👥 视图：搭子管理（升级注入：碰一碰互联与名片设置模块）
         function MembersScreen({ members, onAddMember, isPlanB, setIsPlanB, planBFreeRiderId, setPlanBFreeRiderId, onSelectMember }) {
           const [new_name, setNewName] = useState("");
-          const [bumpState, setBumpState] = useState("idle"); // idle, bumping, success
+          const [bumpState, setBumpState] = useState("idle");
 
-          const handleCreate = (e) => {
-            e.preventDefault();
-            if (!new_name.trim()) return;
-            const randEmoji = MEMBER_EMOJIS[Math.floor(Math.random() * MEMBER_EMOJIS.length)];
-            const randColor = MEMBER_COLORS[Math.floor(Math.random() * MEMBER_COLORS.length)];
-            onAddMember({ id: Date.now(), name: new_name.trim(), emoji: randEmoji, color: randColor, tag: "自由人", bio: "新加入的探险家" });
-            setNewName("");
-          };
-
-          // 模拟线下极具社交仪式感的“碰一碰手机”组队网络
           const triggerBumpInteract = () => {
             setBumpState("bumping");
             setTimeout(() => {
               setBumpState("success");
-              const names = ["Tony特种兵", "卡卡姐", "王总(带飞模式)"];
-              const randomName = names[Math.floor(Math.random() * names.length)];
-              const randEmoji = MEMBER_EMOJIS[Math.floor(Math.random() * MEMBER_EMOJIS.length)];
-              onAddMember({
-                id: Date.now(), name: randomName, emoji: randEmoji, color: C.blue,
-                tag: randomName.includes("王总") ? "豪爽金主" : "特种兵团长",
-                bio: "通过线下NFC/碰一碰设备秒级同步加入。"
-              });
-              setTimeout(() => setBumpState("idle"), 2000);
-            }, 2000);
+              onAddMember({ id: Date.now(), name: "Tony特种兵", emoji: "🐼", color: C.blue, tag: "特种兵团长", bio: "无线雷达秒级捕获加入。" });
+              setTimeout(() => setBumpState("idle"), 1500);
+            }, 1500);
           };
 
-          return (
-            <div style={{ padding: "16px 16px 90px" }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 }}>👥 移动探险小队与社交互联</div>
-              <div style={{ fontSize: 11, color: C.sub, marginBottom: 16 }}>点击搭子头像可自由设置个性头像、名字与社交人设标签。</div>
-
-              {/* ⚡ 新增：极具路演资本的社交跨端无缝连接面板 */}
-              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>⚡ 线下跨设备面对面秒连</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-                <button onClick={triggerBumpInteract} disabled={bumpState !== "idle"} style={{ border: "none", background: bumpState === "bumping" ? C.orangeLight : C.card, borderRadius: 14, padding: "14px 10px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", cursor: "pointer" }}>
-                  <span style={{ fontSize: 24 }} className={bumpState === "bumping" ? "bump-active" : ""}>📱✨</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: C.ink }}>
-                    {bumpState === "idle" && "碰一碰对方手机"}
-                    {bumpState === "bumping" && "感知物理雷达中..."}
-                    {bumpState === "success" && "🎉 成功捕获新搭子"}
-                  </span>
-                </button>
-                <button onClick={() => alert("已调起手机原生多模态扫码器：正在监听团队加密房间二维码...")} style={{ border: "none", background: C.card, borderRadius: 14, padding: "14px 10px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", cursor: "pointer" }}>
-                  <span style={{ fontSize: 24 }}>🔲</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: C.ink }}>面对面扫码进群</span>
-                </button>
-              </div>
-
-              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>💡 分账结算算法模式</h4>
-              <Card style={{ marginBottom: 20, border: isPlanB ? `2px solid ${C.orange}` : `2px solid ${C.blue}30` }}>
-                <div style={{ display: "flex", background: C.bg, padding: 4, borderRadius: 12, marginBottom: 14 }}>
-                  <button onClick={() => setIsPlanB(false)} style={{ flex: 1, border: "none", background: !isPlanB ? C.card : "transparent", color: !isPlanB ? C.blue : C.sub, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
-                    A 方案 (绝对平摊 AA)
-                  </button>
-                  <button onClick={() => setIsPlanB(true)} style={{ flex: 1, border: "none", background: isPlanB ? C.card : "transparent", color: isPlanB ? C.orange : C.sub, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
-                    B 方案 (指定金主免单)
-                  </button>
-                </div>
-
-                {isPlanB ? (
-                  <div style={{ background: C.orangeLight, padding: 12, borderRadius: 12, fontSize: 12, color: C.orange, fontWeight: 700 }}>
-                    <label style={{ display: "block", fontSize: 11, color: C.ink, marginBottom: 6 }}>选择全场免单的搭子人选：</label>
-                    <select value={planBFreeRiderId} onChange={e => setPlanBFreeRiderId(e.target.value)} style={{ width: "100%", padding: "8px", borderRadius: 8, border: `1px solid ${C.orange}`, outline: "none", fontSize: 13, fontWeight: 700 }}>
-                      {members.map(m => (
-                        <option key={m.id} value={m.id}>🌟 免单人：{m.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 12, color: C.sub, lineHeight: "1.5", fontWeight: 600 }}>
-                    ✨ 标准均摊。总开销自动除以当前所有搭子的总人数。
-                  </div>
-                )}
-              </Card>
-
-              {/* 社交队伍名单 */}
-              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>👥 小队成员名片簿 ({members.length} 人)</div>
-              <Card style={{ marginBottom: 16 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {members.map(m => (
-                    <div key={m.id} onClick={() => onSelectMember(m)} style={{ display: "flex", alignItems: "center", gap: 12, background: C.bg, padding: 12, borderRadius: 14, cursor: "pointer" }}>
-                      <MemberDot member={m} size={36} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: C.ink }}>{m.name}</span>
-                          <span style={{ fontSize: 10, background: m.color, color: "#fff", padding: "1px 6px", borderRadius: 6, fontWeight: 700 }}>{m.tag || "自由人"}</span>
-                        </div>
-                        <div style={{ fontSize: 11, color: C.sub, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>{m.bio}</div>
-                      </div>
-                      <div style={{ fontSize: 12, color: C.blue, fontWeight: 700 }}>编辑 ✍️</div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              <Card>
-                <form onSubmit={handleCreate} style={{ display: "flex", gap: 10 }}>
-                  <input type="text" placeholder="手动添加本地模拟搭子..." value={new_name} onChange={e => setNewName(e.target.value)} style={{ flex: 1, background: C.bg, border: "none", borderRadius: 12, padding: "12px 14px", fontSize: 14, outline: "none", fontWeight: 700 }} />
-                  <button type="submit" style={{ background: C.ink, color: "#fff", border: "none", borderRadius: 12, padding: "0 18px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>➕ 加入</button>
-                </form>
-              </Card>
-            </div>
+          return e('div', { style: { padding: "16px 16px 90px" } },
+            e('div', { style: { fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 } }, "👥 移动探险小队与社交互联"),
+            e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 10 } }, "⚡ 线下跨设备面对面秒连"),
+            e('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 } },
+              e('button', { onClick: triggerBumpInteract, style: { border: "none", background: C.card, borderRadius: 14, padding: 12, display: "flex", flexDirection: "column", alignItems: "center" } },
+                e('span', { className: bumpState === "bumping" ? "bump-active" : "", style: { fontSize: 24 } }, "📱✨"),
+                e('span', { style: { fontSize: 11, fontWeight: 800, marginTop: 4 } }, bumpState === "idle" ? "碰一碰对方手机" : bumpState === "bumping" ? "雷达感知中..." : "🎉 成功捕获新搭子")
+              ),
+              e('button', { onClick: () => alert("已唤醒原生相机扫描加密群组二维码..."), style: { border: "none", background: C.card, borderRadius: 14, padding: 12, display: "flex", flexDirection: "column", alignItems: "center" } }, e('span', { style: { fontSize: 24 } }, "🔲"), e('span', { style: { fontSize: 11, fontWeight: 800, marginTop: 4 } }, "面对面扫码进群"))
+            ),
+            e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 10 } }, "💡 结算分账模式架构配置"),
+            e(Card, { style: { marginBottom: 20 } },
+              e('div', { style: { display: "flex", background: C.bg, padding: 4, borderRadius: 10, marginBottom: 10 } },
+                e('button', { onClick: () => setIsPlanB(false), style: { flex: 1, padding: 8, borderRadius: 8, background: !isPlanB ? C.card : "transparent", border: "none", fontWeight: 800 } }, "A方案 (均摊)"),
+                e('button', { onClick: () => setIsPlanB(true), style: { flex: 1, padding: 8, borderRadius: 8, background: isPlanB ? C.card : "transparent", border: "none", fontWeight: 800 } }, "B方案 (免单)")
+              ),
+              isPlanB && e('select', { value: planBFreeRiderId, onChange: ev => setPlanBFreeRiderId(ev.target.value), style: { width: "100%", padding: 8, borderRadius: 8 } }, members.map(m => e('option', { key: m.id, value: m.id }, `🌟 免单特权人：${m.name}`)))
+            ),
+            e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 10 } }, "👥 小队动态档案簿 (点击成员定制人设)"),
+            e(Card, null, members.map(m => e('div', { key: m.id, onClick: () => onSelectMember(m), style: { display: "flex", alignItems: "center", gap: 12, background: C.bg, padding: 10, borderRadius: 12, marginBottom: 8, cursor: "pointer" } },
+              e(MemberDot, { member: m, size: 36 }),
+              e('div', { style: { flex: 1 } }, e('div', { style: { fontWeight: 800, fontSize: 14 } }, m.name), e('div', { style: { fontSize: 11, color: C.sub } }, m.tag || "自由人"))
+            )))
           );
         }
 
-        // ─── 5. CONTROL CONTAINER ───
+        // ─── 5. CONTAINER ───
         function TripMateV2() {
           const [activeTab, setActiveTab] = useState("home");
           const [currentDay, setCurrentDay] = useState(1);
-          const [totalDays, setTotalDays] = useState(3); 
-          const [records, setRecords] = useState([]); 
-
+          const [totalDays, setTotalDays] = useState(3);
+          const [records, setRecords] = useState([]);
           const [members, setMembers] = useState(INITIAL_MEMBERS);
           const [isPlanB, setIsPlanB] = useState(false);
           const [planBFreeRiderId, setPlanBFreeRiderId] = useState(INITIAL_MEMBERS[2]?.id || "");
-
           const [isModalOpen, setIsModalOpen] = useState(false);
-          const [selectedMember, setSelectedMember] = useState(null); // 控制个人设置窗口
+          const [selectedMember, setSelectedMember] = useState(null);
           const [note, setNote] = useState({});
 
-          const handleUpdateMember = (updatedMember) => {
-            setMembers(members.map(m => m.id === updatedMember.id ? updatedMember : m));
-          };
-
           const renderScreen = () => {
-            switch(activeTab) {
-              case "home": return <HomeScreen records={records} members={members} currentDay={currentDay} setCurrentDay={setCurrentDay} onOpenAdd={() => setIsModalOpen(true)} note={note} setNote={setNote} totalDays={totalDays} setTotalDays={setTotalDays} />;
-              case "records": return <RecordsScreen records={records} members={members} />;
-              case "scan": return <ScanScreen currentDay={currentDay} members={members} onAddScannedRecord={(newRec) => setRecords([newRec, ...records])} />;
-              case "stats": return <StatsScreen records={records} members={members} isPlanB={isPlanB} planBFreeRiderId={planBFreeRiderId} />;
-              case "members": return <MembersScreen members={members} onAddMember={(m) => setMembers([...members, m])} isPlanB={isPlanB} setIsPlanB={setIsPlanB} planBFreeRiderId={planBFreeRiderId} setPlanBFreeRiderId={setPlanBFreeRiderId} onSelectMember={(m) => setSelectedMember(m)} />;
-              default: return <HomeScreen records={records} members={members} currentDay={currentDay} setCurrentDay={setCurrentDay} onOpenAdd={() => setIsModalOpen(true)} note={note} setNote={setNote} totalDays={totalDays} setTotalDays={setTotalDays} />;
-            }
+            if (activeTab === "records") return e(RecordsScreen, { records, members });
+            if (activeTab === "scan") return e(ScanScreen, { currentDay, members, onAddScannedRecord: r => setRecords([r, ...records]) });
+            if (activeTab === "stats") return e(StatsScreen, { records, members, isPlanB, planBFreeRiderId });
+            if (activeTab === "members") return e(MembersScreen, { members, onAddMember: m => setMembers([...members, m]), isPlanB, setIsPlanB, planBFreeRiderId, setPlanBFreeRiderId, onSelectMember: m => setSelectedMember(m) });
+            return e(HomeScreen, { records, members, currentDay, setCurrentDay, onOpenAdd: () => setIsModalOpen(true), note, setNote, totalDays, setTotalDays });
           };
 
-          return (
-            <div style={{ background: C.bg, minHeight: "100vh", position: "relative" }}>
-              {renderScreen()}
-
-              <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255, 255, 255, 0.96)", backdropFilter: "blur(10px)", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-around", padding: "10px 0 24px", zIndex: 900 }}>
-                {TABS.map(t => (
-                  <div key={t.key} onClick={() => setActiveTab(t.key)} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", minWidth: 55 }}>
-                    <span style={{ fontSize: 22, transform: activeTab === t.key ? "scale(1.12)" : "scale(1)", transition: "transform 0.2s" }}>{t.icon}</span>
-                    <span style={{ fontSize: 10, marginTop: 4, fontWeight: 800, color: activeTab === t.key ? C.orange : C.textMain, opacity: activeTab === t.key ? 1 : 0.4 }}>{t.label}</span>
-                  </div>
-                ))}
-              </div>
-
-              <QuickRecordModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} members={members} currentDay={currentDay} onSave={(newRec) => setRecords([newRec, ...records])} />
-              
-              <MemberProfileModal member={selectedMember} isOpen={!!selectedMember} onClose={() => setSelectedMember(null)} onUpdate={handleUpdateMember} />
-            </div>
+          return e('div', { style: { background: C.bg, minHeight: "100vh", position: "relative" } },
+            renderScreen(),
+            e('div', { style: { position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255, 255, 255, 0.96)", backdropFilter: "blur(10px)", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-around", padding: "10px 0 24px", zIndex: 900 } },
+              TABS.map(t => e('div', { key: t.key, onClick: () => setActiveTab(t.key), style: { display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" } },
+                e('span', { style: { fontSize: 22 } }, t.icon),
+                e('span', { style: { fontSize: 10, marginTop: 4, color: activeTab === t.key ? C.orange : C.textMain, fontWeight: 800 } }, t.label)
+              ))
+            ),
+            e(QuickRecordModal, { isOpen: isModalOpen, onClose: () => setIsModalOpen(false), members, currentDay, onSave: r => setRecords([r, ...records]) }),
+            e(MemberProfileModal, { member: selectedMember, isOpen: !!selectedMember, onClose: () => setSelectedMember(null), onUpdate: m => setMembers(members.map(i => i.id === m.id ? m : i)) })
           );
         }
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<TripMateV2 />);
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(e(TripMateV2));
     </script>
 </body>
 </html>
