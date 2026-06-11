@@ -2,216 +2,68 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TripMate — 侘寂美學旅行賬本</title>
+    <title>TripMate — 完整版</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
-        /* 🎨 Modern Chinoiserie & Wabi-Sabi 侘寂新中式視覺系統 */
-        body { 
-            margin: 0; 
-            background: #F2EFE9; /* 仿手工宣紙/微水泥溫潤底色 */
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", sans-serif; 
-            color: #2C2C2C; 
-            padding-bottom: 60px;
-            letter-spacing: 0.03em;
-        }
-        * { box-sizing: border-box; }
-        .container { max-width: 480px; margin: 0 auto; padding: 20px 16px; }
-        
-        .card { 
-            background: #FFFFFF; 
-            border-radius: 14px; 
-            padding: 20px; 
-            box-shadow: 0 4px 24px rgba(44, 44, 44, 0.02); 
-            margin-bottom: 18px; 
-            border: 1px solid rgba(230, 226, 218, 0.6);
-        }
-        
-        .brand-header { padding: 24px 16px 12px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .brand-title { font-size: 22px; font-weight: 600; color: #1C1C1C; font-family: Georgia, serif; }
-        .brand-subtitle { font-size: 11px; color: #7A7A7A; text-transform: uppercase; margin-top: 2px; }
-
-        .total-amount-box { background: #23282F; color: #EFECE6; border-radius: 16px; padding: 24px 20px; margin-bottom: 20px; }
-
-        .btn { 
-            width: 100%; 
-            background: #D96B43; /* 硃砂/東方植物染柿紅意象 */
-            color: #fff; 
-            border: none; 
-            border-radius: 10px; 
-            padding: 14px; 
-            font-weight: 500; 
-            font-size: 14px; 
-            cursor: pointer; 
-            transition: opacity 0.2s;
-        }
-        .btn:active { opacity: 0.85; }
-        .btn-outline { background: transparent; border: 1px solid #D96B43; color: #D96B43; margin-top: 10px; }
-        
-        .input-group { margin-bottom: 14px; }
-        .input-group label { display: block; font-size: 11px; color: #7A7A7A; margin-bottom: 6px; }
-        .input-group input, .input-group select { 
-            width: 100%; 
-            border: 1px solid #E6E2DA; 
-            background: #FCFAFA;
-            border-radius: 8px; 
-            padding: 12px; 
-            outline: none; 
-            font-size: 14px;
-            color: #2C2C2C;
-        }
-        
-        .ledger-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
-        .record-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #F5F3EE; }
-        .record-meta { font-size: 11px; color: #9A9A9A; margin-top: 4px; display: flex; gap: 8px; align-items: center; }
-        .badge-source { background: #F5F3EE; color: #6A6A6A; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
-        .amount-text { font-size: 16px; font-weight: 700; color: #2C2C2C; font-family: monospace; }
-
-        .dev-toggle { text-align: center; font-size: 11px; color: #A0A0A0; cursor: pointer; padding: 10px; margin-top: 20px; text-decoration: underline; }
+        body { background: #F2EFE9; padding: 20px; font-family: sans-serif; }
+        .card { background: white; padding: 20px; border-radius: 12px; max-width: 400px; margin: 10px auto; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        input, select { width: 100%; margin: 8px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; }
+        button { width: 100%; padding: 12px; background: #D96B43; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .record { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
     <div id="root"></div>
-
     <script>
-        const e = React.createElement;
-        const { useState, useEffect, useRef } = React;
+        const { createClient } = supabase;
+        const client = createClient("https://gpjbhfjrpcvgwqbemkvk.supabase.co", "sb_publishable_k3u9PuGwj9mUHM5g5K91Fw_GRB5GI0Y");
 
-        // 🔒 硬核填入你專屬的 Supabase 直連憑證（前端直連，最穩、絕不罷工）
-        // 請將下面這兩個引號內的內容，替換成你 Supabase 的實際網址與 anon key
-        const SUPABASE_URL = "https://liaomanman-arch.supabase.co"; // 填入你的 Supabase 專案網址
-        const SUPABASE_ANON_KEY = "sb_publishable_k3u9PuGwj9mUHM5g5k91Fw_GRB5G..."; // 填入你 image_476025.png 中看到的那個長金鑰
+        const App = () => {
+            const [records, setRecords] = React.useState([]);
+            const [loading, setLoading] = React.useState(true);
 
-        function App() {
-            const [records, setRecords] = useState([]);
-            const [showDevZone, setShowDevZone] = useState(false);
-            const [myName, setMyName] = useState(localStorage.getItem("user_name") || "探險家");
-            const supabaseRef = useRef(null);
-
-            useEffect(() => {
-                try {
-                    // 初始化 Supabase 客戶端
-                    supabaseRef.current = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    fetchInitialRecords();
-
-                    // 開啟秒級實時同步廣播通道
-                    const channel = supabaseRef.current
-                        .channel('realtime-ledger')
-                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trip_records' }, payload => {
-                            setRecords(prev => [payload.new, ...prev]);
-                        })
-                        .subscribe();
-
-                    return () => { if(supabaseRef.current) supabaseRef.current.removeChannel(channel); };
-                } catch (err) {
-                    console.error("資料庫初始化失敗：", err);
-                }
-            }, []);
-
-            const fetchInitialRecords = async () => {
-                if (!supabaseRef.current) return;
-                const { data, error } = await supabaseRef.current
-                    .from('trip_records')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+            const fetchRecords = async () => {
+                const { data } = await client.from('trip_records').select('*').order('created_at', { ascending: false });
                 if (data) setRecords(data);
-                if (error) console.error("抓取初始數據失敗：", error);
+                setLoading(false);
             };
 
-            const handleManualSubmit = async (ev) => {
-                ev.preventDefault();
-                const title = ev.target.elements.title.value;
-                const amount = ev.target.elements.amount.value;
-                const category = ev.target.elements.category.value;
+            React.useEffect(() => { fetchRecords(); }, []);
 
-                if (!title || !amount) return alert("請填寫支出品項和金額！");
-
-                const { error } = await supabaseRef.current.from('trip_records').insert([{
-                    title,
-                    amount: parseFloat(amount),
-                    category,
-                    payer_name: myName,
-                    device_source: "本機輸入"
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                await client.from('trip_records').insert([{ 
+                    title: e.target.title.value, 
+                    amount: parseFloat(e.target.amount.value),
+                    category: e.target.category.value 
                 }]);
-                
-                if (error) {
-                    alert("入帳失敗，請確認 Supabase 端的【不使用 RLS 運行】按鈕是否有按下去！");
-                } else {
-                    ev.target.reset();
-                    fetchInitialRecords(); // 雙重保障刷新
-                }
+                e.target.reset();
+                fetchRecords();
             };
 
-            const simulatePartnerPay = async (partnerName, item, cost, cat) => {
-                if (!supabaseRef.current) return;
-                const { error } = await supabaseRef.current.from('trip_records').insert([{
-                    title: item,
-                    amount: parseFloat(cost),
-                    category: cat,
-                    payer_name: partnerName,
-                    device_source: `${partnerName}的手機`
-                }]);
-                if (!error) fetchInitialRecords();
-            };
-
-            const totalSpend = records.reduce((sum, r) => sum + r.amount, 0);
-
-            return e('div', { className: "container" },
-                e('div', { className: "brand-header" },
-                    e('div', null,
-                        e('div', { className: "brand-title" }, "TripMate."),
-                        e('div', { className: "brand-subtitle" }, "Decentralized Travel Ledger")
-                    ),
-                    e('span', { style: { fontSize: "11px", color: "#D96B43", fontWeight: "bold" } }, "● 雲端整合節點")
-                ),
-
-                e('div', { className: "total-amount-box" },
-                    e('div', { style: { fontSize: "11px", opacity: 0.5 } }, "TOTAL EXPENSES / 團隊當前決算總支出"),
-                    e('div', { style: { fontSize: "36px", fontWeight: "700", margin: "8px 0 4px", fontFamily: "monospace" } }, `¥ ${totalSpend.toLocaleString()}`),
-                    e('div', { style: { fontSize: "11px", opacity: 0.7 } }, `當前結伴建制: ${Array.from(new Set(records.map(r=>r.payer_name))).length || 0} 人付賬 | 累計 ${records.length} 筆`)
-                ),
-
-                e('div', { className: "card" },
-                    e('div', { style: { fontSize: "13px", fontWeight: "600", marginBottom: "12px", color: "#7A7A7A" } }, "✍️ QUICK RECORD / 主視角隨手記"),
-                    e('form', { onSubmit: handleManualSubmit },
-                        e('div', { className: "input-group" }, e('label', null, "支出品項"), e('input', { name: "title", type: "text", placeholder: "如：京都川床料理" })),
-                        e('div', { className: "input-group" }, e('label', null, "金額"), e('input', { name: "amount", type: "number", step: "any", placeholder: "0.00" })),
-                        e('div', { className: "input-group" }, e('label', null, "消費類別"), e('select', { name: "category" }, ['餐飲','購物','門票','交通','住宿','其他'].map(c => e('option', { key: c, value: c }, c)))),
-                        e('button', { type: "submit", className: "submit-btn btn" }, "入賬並同步全隊")
-                    )
-                ),
-
-                e('div', { className: "card" },
-                    e('div', { className: "ledger-title" }, e('span', null, "🗺️ LEDGER PAPERS / 全端動態融合流水")),
-                    records.length === 0 ? e('div', { style: { color: "#9A9A9A", textAlign: "center", padding: "20px", fontSize: "13px" } }, "雲端流水庫為空，請在下方設定暱稱並嘗試記第一筆賬") :
-                    records.map(r => e('div', { key: r.id, className: "record-item" },
-                        e('div', null, 
-                            e('div', { style: { fontWeight: "500", fontSize: "14px" } }, r.title),
-                            e('div', { className: "record-meta" }, e('span', null, `👤 付款: ${r.payer_name}`), e('span', { className: "badge-source" }, r.device_source))
+            return React.createElement('div', null,
+                React.createElement('div', { className: 'card' },
+                    React.createElement('h2', null, "TripMate 記帳"),
+                    React.createElement('form', { onSubmit: handleSubmit },
+                        React.createElement('input', { name: "title", placeholder: "品項", required: true }),
+                        React.createElement('input', { name: "amount", type: "number", placeholder: "金額", required: true }),
+                        React.createElement('select', { name: "category" }, 
+                            ['餐飲','住宿','購物','交通'].map(c => React.createElement('option', { value: c }, c))
                         ),
-                        e('div', { className: "amount-text" }, `¥${r.amount}`)
-                    ))
-                ),
-
-                e('div', { className: "card", style: { background: "#EAE6DF", borderColor: "#DCD8CE" } },
-                    e('div', { style: { fontSize: "12px", fontWeight: "600", marginBottom: "10px" } }, "👤 USER IDENTITY / 本機身分暱稱設定"),
-                    e('div', { className: "input-group" }, e('input', { type: "text", value: myName, onChange: ev => { setMyName(ev.target.value); localStorage.setItem("user_name", ev.target.value); }, placeholder: "請輸入你在團隊中的暱稱" }))
-                ),
-
-                e('div', { className: "dev-toggle", onClick: () => setShowDevZone(!showDevZone) }, showDevZone ? "🔼 隱藏模擬器" : "🔽 展開遠端搭子虛擬測試艙"),
-                showDevZone && e('div', { className: "card", style: { border: "2px dashed #D96B43", background: "#FFFBF9" } },
-                    e('div', { style: { display: "flex", gap: "10px" } },
-                        e('button', { onClick: () => simulatePartnerPay("剛子", "太古里火鍋", 450, "餐飲"), className: "btn btn-outline", style: { flex: 1, margin: 0, fontSize: "11px" } }, " Foxes 模擬「剛子」付 ¥450"),
-                        e('button', { onClick: () => simulatePartnerPay("大聰", "便利店補給", 68, "其他"), className: "btn btn-outline", style: { flex: 1, margin: 0, fontSize: "11px", borderColor: "#4A7CFF", color: "#4A7CFF" } }, " Panda 模擬「大聰」付 ¥68")
+                        React.createElement('button', { type: "submit" }, "入賬")
                     )
+                ),
+                React.createElement('div', { className: 'card' },
+                    records.map(r => React.createElement('div', { key: r.id, className: 'record' }, 
+                        React.createElement('span', null, r.title), 
+                        React.createElement('b', null, "¥" + r.amount)
+                    ))
                 )
             );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(e(App));
+        };
+        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
     </script>
 </body>
 </html>
