@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TripMate 旅行记账 完全体</title>
-    <!-- 引入最稳定的 React UMD 生产环境包 -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <style>
@@ -35,11 +34,10 @@
     <div id="root"></div>
 
     <script>
-        // 放弃 JSX，使用更底层稳定的 React.createElement，从根本上解决空白和转圈问题
         const e = React.createElement;
         const { useState, useMemo } = React;
 
-        // ─── 1. DESIGN TOKENS ───
+        // ─── DESIGN TOKENS ───
         const C = {
           bg: "#F2F4F7", card: "#FFFFFF", orange: "#FF6B2B", orangeLight: "#FFF0EA",
           blue: "#4A7CFF", blueLight: "#EEF3FF", green: "#2DC76D", greenLight: "#E8FAF1",
@@ -51,7 +49,7 @@
           { key: "home", label: "旅程", icon: "🗺" },
           { key: "records", label: "账本", icon: "📒" },
           { key: "scan", label: "扫单", icon: "📷" },
-          { key: "stats", label: "统计", icon: "📊" },
+          { key: "stats", label: "统计/结账", icon: "📊" },
           { key: "members", label: "搭子", icon: "👥" },
         ];
 
@@ -69,7 +67,7 @@
           { id: 3, name: "小雨", emoji: "🐨", color: C.green, tag: "躺平专业户", bio: "跟着哥哥姐姐混，上车睡觉下车拍照。" }
         ];
 
-        // ─── 2. UI UTILS COMPONENTS ───
+        // UI UTILS COMPONENTS
         function Card({ children, style, onClick }) {
           return e('div', {
             onClick,
@@ -96,7 +94,7 @@
           );
         }
 
-        // ─── 3. MODALS ───
+        // ─── MODALS ───
         function QuickRecordModal({ isOpen, onClose, members, onSave, currentDay }) {
           if (!isOpen) return null;
           const [amount, setAmount] = useState("");
@@ -151,7 +149,8 @@
           );
         }
 
-        function MemberProfileModal({ member, isOpen, onClose, onUpdate }) {
+        // 注入功能：搭子名片弹窗增加了删除（移出队伍）
+        function MemberProfileModal({ member, isOpen, onClose, onUpdate, onDelete }) {
           if (!isOpen || !member) return null;
           const [name, setName] = useState(member.name);
           const [emoji, setEmoji] = useState(member.emoji);
@@ -182,12 +181,15 @@
                 e('label', { style: { fontSize: 11, color: C.sub, fontWeight: 700, display: "block", marginBottom: 4 } }, "个性签名"),
                 e('textarea', { value: bio, onChange: ev => setBio(ev.target.value), style: { width: "100%", border: `1px solid ${C.border}`, padding: "10px", borderRadius: 10, fontSize: 12, outline: "none", height: 60, resize: "none" } })
               ),
-              e('button', { onClick: () => { onUpdate({ ...member, name, emoji, tag, bio }); onClose(); }, style: { width: "100%", background: C.ink, color: "#fff", border: "none", borderRadius: 12, padding: 12, fontWeight: 800, fontSize: 14 } }, "保存搭子人设")
+              e('div', { style: { display: "flex", gap: 10 } },
+                e('button', { onClick: () => { onDelete(member.id); onClose(); }, style: { flex: 1, background: C.orangeLight, color: C.orange, border: "none", borderRadius: 12, padding: 12, fontWeight: 800, fontSize: 13 } }, "👋 移出队伍"),
+                e('button', { onClick: () => { onUpdate({ ...member, name, emoji, tag, bio }); onClose(); }, style: { flex: 2, background: C.ink, color: "#fff", border: "none", borderRadius: 12, padding: 12, fontWeight: 800, fontSize: 13 } }, "保存搭子人设")
+              )
             )
           );
         }
 
-        // ─── 4. SCREENS ───
+        // ─── SCREENS ───
         function HomeScreen({ records, members, currentDay, setCurrentDay, onOpenAdd, note, setNote, totalDays, setTotalDays }) {
           const [isEditingDays, setIsEditingDays] = useState(false);
           const totalBudget = 20000;
@@ -204,9 +206,9 @@
                 isEditingDays ? e('div', { style: { display: "flex", alignItems: "center", gap: 6, marginTop: 4 } },
                   e('input', { type: "number", value: totalDays, onChange: ev => setTotalDays(Math.max(1, parseInt(ev.target.value) || 1)), onBlur: () => setIsEditingDays(false), style: { width: 60, padding: "4px 8px", fontSize: 15, fontWeight: 800, borderRadius: 8, border: `2px solid ${C.orange}`, outline: "none" }, autoFocus: true }),
                   e('span', { style: { fontSize: 13, fontWeight: 700 } }, "天行程")
-                ) : e('span', { style: { fontSize: 15, fontWeight: 800, color: C.ink, marginTop: 4 } }, `新旅行计划 · `, e('span', { style: { color: C.orange } }, `${totalDays} 天行程`))
+                ) : e('span', { style: { fontSize: 15, fontWeight: 800, color: C.ink, marginTop: 4 } }, `当前进行中计划 · `, e('span', { style: { color: C.orange } }, `${totalDays} 天行程`))
               ),
-              e('button', { onClick: () => setIsEditingDays(!isEditingDays), style: { border: "none", background: C.bg, padding: "6px 12px", borderRadius: 10, fontSize: 11, fontWeight: 700, color: C.sub } }, isEditingDays ? "确定" : "✍️ 自定义天数")
+              e('button', { onClick: () => setIsEditingDays(!isEditingDays), style: { border: "none", background: C.bg, padding: "6px 12px", borderRadius: 10, fontSize: 11, fontWeight: 700, color: C.sub } }, isEditingDays ? "确定" : "✍️ 修改天数")
             ),
             e('div', { style: { marginBottom: 16 } },
               e('div', { className: "no-scroll", style: { paddingBottom: 8, display: "flex", gap: 10, overflowX: "auto" } },
@@ -222,13 +224,13 @@
                 e(Tag, { label: "本币 CNY", color: "#fff", bg: "rgba(255,255,255,0.15)" })
               ),
               e('div', { style: { fontSize: 30, fontWeight: 900, marginBottom: 12, letterSpacing: -1 } },
-                `¥${tripTotal.toLocaleString()} `, e('span', { style: { fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: 500 } }, `/ 预算上限 ¥${totalBudget.toLocaleString()}`)
+                `¥${tripTotal.toLocaleString()} `, e('span', { style: { fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: 500 } }, `/ 预算上限 ¥20,000`)
               ),
               e(ProgressBar, { pct: budgetPct, color: C.orange })
             ),
             e(Card, { style: { marginBottom: 20, padding: "14px 18px" } },
               e('div', { style: { fontSize: 11, color: C.sub, fontWeight: 800, marginBottom: 4 } }, `📌 Day ${currentDay} 随行备忘录`),
-              e('input', { type: "text", value: note[currentDay] || "", onChange: ev => { const v = ev.target.value; setNote(p => ({ ...p, [currentDay]: v })); }, placeholder: "输入今天的目的地或临时想法...", style: { width: "100%", border: "none", padding: "4px 0", fontSize: 13, fontWeight: 700, color: C.ink, outline: "none", background: "transparent" } })
+              e('input', { type: "text", value: note[currentDay] || "", onChange: ev => { const v = ev.target.value; setNote(p => ({ ...p, [currentDay]: v })); }, placeholder: "输入今天的目的地或临时想法(将存入历史攻略)...", style: { width: "100%", border: "none", padding: "4px 0", fontSize: 13, fontWeight: 700, color: C.ink, outline: "none", background: "transparent" } })
             ),
             e('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 } },
               e('span', { style: { fontSize: 14, fontWeight: 800, color: C.ink } }, `Day ${currentDay} 消费流水 (${dayRecords.length} 笔)`),
@@ -271,56 +273,43 @@
           const [activeScene, setActiveScene] = useState("domestic");
 
           const SCENE_DATA = {
-            domestic: { label: "🇨🇳 国内物美/永辉超市纸质小票", store: "物美量贩总店", title: "金龙鱼调和油 + 珍品五常大米", category: "其他", amountCNY: 158.5, amountRaw: "¥158.50", lang: "CNY (本币)" },
-            digital_pay: { label: "📱 微信/支付宝/端内电子支付截图", store: "喜茶（上海新天地店）", title: "多肉葡萄双人下午茶套餐", category: "餐饮", amountCNY: 38, amountRaw: "¥38.00", lang: "微信支付凭证" },
-            overseas: { label: "🇯🇵/🇺🇸 全球多语言外币小票 (自动换算)", store: "MatsuKiyo 药局", title: "安耐晒防晒霜 + 龙角散", category: "购物", amountCNY: 215, amountRaw: "¥4,680 JPY", lang: "外币汇率自动换算" }
+            domestic: { label: "🇨🇳 国内纸质发票/小票一键扫单", store: "物美量贩总店", title: "金龙鱼调和油 + 珍品五常大米", category: "其他", amountCNY: 158.5, lang: "CNY" },
+            digital_pay: { label: "📱 微信/支付宝电子支付截图导入", store: "喜茶（上海新天地店）", title: "多肉葡萄双人下午茶套餐", category: "餐饮", amountCNY: 38, lang: "微信支付凭证" },
+            overseas: { label: "🇯🇵/🇺🇸 跨国旅行外币小票 (AI智能换算)", store: "MatsuKiyo 药局", title: "安耐晒防晒霜 + 龙角散", category: "购物", amountCNY: 215, lang: "外币汇率折算" }
           };
 
           const startScanning = (sceneKey) => {
             setActiveScene(sceneKey); setScanState("scanning");
-            setTimeout(() => { setScanState("result"); }, 2000);
-          };
-
-          const handleConfirm = () => {
-            const cur = SCENE_DATA[activeScene];
-            onAddScannedRecord({
-              id: Date.now(), title: cur.title, category: cur.category, method: "AI智能扫单", store: cur.store, amount: cur.amountCNY, memberId: selectedPayer, day: currentDay, time: "12:00", lang: cur.lang
-            });
-            setScanState("idle");
+            setTimeout(() => { setScanState("result"); }, 1500);
           };
 
           return e('div', { style: { padding: "16px 16px 90px" } },
             e('div', { style: { fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 } }, "📷 通识全场景 AI 扫单"),
-            e('div', { style: { fontSize: 11, color: C.sub, marginBottom: 16 } }, "AI 视觉一键全自动解构入账。"),
             scanState === "idle" && e('div', {
               onClick: () => setScanState("scene_select"),
               style: { border: `2.5px dashed ${C.orange}50`, height: 220, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: C.orangeLight, borderRadius: 20, cursor: "pointer" }
-            }, e('div', { style: { fontSize: 44, marginBottom: 10 } }, "📸"), e('span', { style: { fontWeight: 800, fontSize: 14 } }, "点击模拟拍照读取单据")),
+            }, e('div', { style: { fontSize: 44, marginBottom: 10 } }, "📸"), e('span', { style: { fontWeight: 800, fontSize: 14 } }, "点击模拟拍照读取凭证")),
             scanState === "scene_select" && e(Card, null,
-              e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 12, color: C.orange, textAlign: "center" } }, "💡 模拟真实 AI 多模态分类"),
-              Object.keys(SCENE_DATA).map(k => e('button', { key: k, onClick: () => startScanning(k), style: { width: "100%", padding: "12px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, fontWeight: 700, marginBottom: 8, textAlign: "left" } }, `👉 ${SCENE_DATA[k].label}`))
+              Object.keys(SCENE_DATA).map(k => e('button', { key: k, onClick: () => startScanning(k), style: { width: "100%", padding: "12px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, fontWeight: 700, marginBottom: 8, textAlign: "left" } }, SCENE_DATA[k].label))
             ),
             scanState === "scanning" && e(Card, { style: { position: "relative", height: 200, display: "flex", alignItems: "center", justifyContent: "center", background: C.ink, color: "#fff" } },
-              e('div', { className: "scanner-line" }), e('div', null, "多模态视觉芯片解析中...")
+              e('div', { className: "scanner-line" }), e('div', null, "多模态AI视觉芯片解析中...")
             ),
             scanState === "result" && e('div', null,
               e(Card, { style: { background: C.ink, color: "#fff", marginBottom: 16 } },
                 e('div', { style: { fontSize: 15, fontWeight: 800 } }, SCENE_DATA[activeScene].title),
-                e('div', { style: { fontSize: 24, fontWeight: 900, color: C.yellow, marginTop: 8 } }, `折合本币: ¥${SCENE_DATA[activeScene].amountCNY}`)
-              ),
-              e(Card, { style: { marginBottom: 16 } },
-                e('div', { style: { fontSize: 12, fontWeight: 800, marginBottom: 10 } }, "确认本次代付人"),
-                e('div', { style: { display: "flex", gap: 8 } }, members.map(m => e('button', { key: m.id, onClick: () => setSelectedPayer(m.id), style: { padding: "8px 12px", borderRadius: 10, background: selectedPayer === m.id ? C.orangeLight : C.bg, border: "none", fontWeight: 700 } }, m.name)))
+                e('div', { style: { fontSize: 24, fontWeight: 900, color: C.yellow, marginTop: 8 } }, `¥${SCENE_DATA[activeScene].amountCNY}`)
               ),
               e('div', { style: { display: "flex", gap: 10 } },
                 e('button', { onClick: () => setScanState("idle"), style: { flex: 1, padding: 12, borderRadius: 12, background: C.border, border: "none" } }, "重拍"),
-                e('button', { onClick: handleConfirm, style: { flex: 2, padding: 12, borderRadius: 12, background: C.orange, color: "#fff", border: "none", fontWeight: 800 } }, "确认入账")
+                e('button', { onClick: () => { onAddScannedRecord({ id: Date.now(), title: SCENE_DATA[activeScene].title, category: SCENE_DATA[activeScene].category, method: "AI扫单", store: SCENE_DATA[activeScene].store, amount: SCENE_DATA[activeScene].amountCNY, memberId: selectedPayer, day: currentDay, time: "12:00", lang: SCENE_DATA[activeScene].lang }); setScanState("idle"); }, style: { flex: 2, padding: 12, borderRadius: 12, background: C.orange, color: "#fff", border: "none", fontWeight: 800 } }, "确认入账")
               )
             )
           );
         }
 
-        function StatsScreen({ records, members, isPlanB, planBFreeRiderId }) {
+        // 📊 统计与结账面板（大幅升级：加入结项并生成可视化攻略机制）
+        function StatsScreen({ records, members, isPlanB, planBFreeRiderId, note, onArchiveTrip, historyTrips }) {
           const totalSpend = records.reduce((sum, r) => sum + r.amount, 0);
           const effectiveAAContractors = isPlanB && planBFreeRiderId ? members.filter(m => m.id !== parseInt(planBFreeRiderId)) : members;
           const avgSpend = effectiveAAContractors.length > 0 ? (totalSpend / effectiveAAContractors.length).toFixed(2) : 0;
@@ -347,14 +336,51 @@
             return transfers;
           }, [records, members, totalSpend, effectiveAAContractors, isPlanB, planBFreeRiderId]);
 
+          const handleArchiveClick = () => {
+            if (records.length === 0) return alert("当前旅程还没有消费流水，无法封存哦！");
+            if (confirm("确定要结束并封存本次小队旅程吗？账本和备忘录将被一键清零，并转化沉淀为精美的可视化社交攻略！")) {
+              onArchiveTrip();
+            }
+          };
+
           return e('div', { style: { padding: "16px 16px 100px" } },
-            e('div', { style: { fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 } }, "📊 团队费用分账看板"),
+            e('div', { style: { fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 } }, "📊 团队账单与清结"),
             e(Card, { style: { marginBottom: 16, background: `linear-gradient(135deg, ${C.blue} 0%, #355CC2 100%)`, color: "#fff" } },
               e('div', { style: { fontSize: 32, fontWeight: 900 } }, `¥${totalSpend.toLocaleString()}`),
               e('div', { style: { marginTop: 8, fontSize: 12, opacity: 0.9 } }, `实际人均应付: ¥${avgSpend}`)
             ),
+            
             e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 10 } }, "⚖️ 智能结清转账方案"),
-            e(Card, null, dynamicTransfers.length === 0 ? "🎉 账目已全部扯平" : dynamicTransfers.map((t, x) => e('div', { key: x, style: { padding: "8px 0", borderBottom: `1px solid ${C.border}` } }, `${t.from} ➡️ ${t.to} : ¥${t.amount}`)))
+            e(Card, { style: { marginBottom: 20 } }, 
+              dynamicTransfers.length === 0 ? "🎉 账目平衡，无任何跨人欠款" : 
+              dynamicTransfers.map((t, x) => e('div', { key: x, style: { padding: "8px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 } }, `${t.from} ➡️ ${t.to} : `, e('span', { style: { fontWeight: 800, color: C.orange } }, `¥${t.amount}`)))
+            ),
+
+            /* 🔥 新增：商业故事核心按钮 - 封存本期行程并生成社交卡片 */
+            e('button', {
+              onClick: handleArchiveClick,
+              style: { width: "100%", background: `linear-gradient(90deg, ${C.orange} 0%, #FF8F2B 100%)`, color: "#fff", border: "none", borderRadius: 16, padding: "14px", fontWeight: 900, fontSize: 14, boxShadow: "0 4px 15px rgba(255,107,43,0.25)", cursor: "pointer", marginBottom: 24 }
+            }, "🎉 结束本次旅程 · 生成可视化复盘攻略"),
+
+            /* 🔥 新增：历史可视化攻略画卷橱窗（好友可见面板） */
+            e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 10 } }, `📁 已沉淀的可视化历史攻略 (${historyTrips.length})`),
+            historyTrips.length === 0 ? e('div', { style: { textAlign: "center", padding: "30px 0", color: C.sub, fontSize: 12, background: C.card, borderRadius: 16 } }, "🗺 尚无历史归档。结束当前旅程后，这里将生成精美的“通识旅行画卷”，好友点击你的主页即可直接白嫖你的高分攻略！") :
+            historyTrips.map((trip, idx) => e(Card, { key: trip.id, style: { marginBottom: 12, borderLeft: `5px solid ${C.green}`, background: "#fafafa" } },
+              e('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } },
+                e('span', { style: { fontWeight: 800, fontSize: 14, color: C.ink } }, `✨ 封存历史足迹 #${historyTrips.length - idx} 号档案`),
+                e(Tag, { label: "公开可见·可一键分享", color: C.green, bg: C.greenLight })
+              ),
+              e('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10, background: "#fff", padding: 10, borderRadius: 10, fontSize: 12 } },
+                e('div', null, `💰 总共花费: `, e('span', { style: { fontWeight: 700 } }, `¥${trip.totalSpend}`)),
+                e('div', null, `👥 同行战友: `, e('span', { style: { fontWeight: 700 } }, `${trip.memberCount}人`))
+              ),
+              e('div', { style: { fontSize: 12, color: C.ink, fontWeight: 700, marginBottom: 4 } }, "🗺 日程与足迹备忘录回顾:"),
+              e('div', { style: { padding: 8, background: "#fff", borderRadius: 8, fontSize: 11, color: C.sub, lineHeight: "1.4" } },
+                Object.keys(trip.notes).length === 0 ? "该团长很酷，未留下特殊随手笔记" :
+                Object.keys(trip.notes).map(dayKey => e('div', { key: dayKey }, `• Day ${dayKey}: ${trip.notes[dayKey]}`))
+              ),
+              e('button', { onClick: () => alert("已复制该精美可视化攻略的动态密钥口令！发到微信/小红书新搭子即可一键导入全套日程预算架构！"), style: { width: "100%", border: "none", background: C.border, padding: "8px", borderRadius: 8, fontSize: 11, fontWeight: 700, color: C.ink, marginTop: 8, cursor: "pointer" } }, "🔗 呼出卡片名片·复制分享链接")
+            ))
           );
         }
 
@@ -366,9 +392,11 @@
             setBumpState("bumping");
             setTimeout(() => {
               setBumpState("success");
-              onAddMember({ id: Date.now(), name: "Tony特种兵", emoji: "🐼", color: C.blue, tag: "特种兵团长", bio: "无线雷达秒级捕获加入。" });
-              setTimeout(() => setBumpState("idle"), 1500);
-            }, 1500);
+              const names = ["卡卡姐", "特种兵小野", "王总(带飞模式)"];
+              const randomName = names[Math.floor(Math.random() * names.length)];
+              onAddMember({ id: Date.now(), name: randomName, emoji: "🐼", color: C.blue, tag: "特种兵团长", bio: "无线物理雷达秒级捕获加入队伍。" });
+              setTimeout(() => setBumpState("idle"), 1200);
+            }, 1200);
           };
 
           return e('div', { style: { padding: "16px 16px 90px" } },
@@ -389,15 +417,16 @@
               ),
               isPlanB && e('select', { value: planBFreeRiderId, onChange: ev => setPlanBFreeRiderId(ev.target.value), style: { width: "100%", padding: 8, borderRadius: 8 } }, members.map(m => e('option', { key: m.id, value: m.id }, `🌟 免单特权人：${m.name}`)))
             ),
-            e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 10 } }, "👥 小队动态档案簿 (点击成员定制人设)"),
+            e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 10 } }, "👥 小队动态档案簿 (点击成员可进行人设编辑或劝退移出)"),
             e(Card, null, members.map(m => e('div', { key: m.id, onClick: () => onSelectMember(m), style: { display: "flex", alignItems: "center", gap: 12, background: C.bg, padding: 10, borderRadius: 12, marginBottom: 8, cursor: "pointer" } },
               e(MemberDot, { member: m, size: 36 }),
-              e('div', { style: { flex: 1 } }, e('div', { style: { fontWeight: 800, fontSize: 14 } }, m.name), e('div', { style: { fontSize: 11, color: C.sub } }, m.tag || "自由人"))
+              e('div', { style: { flex: 1 } }, e('div', { style: { fontWeight: 800, fontSize: 14 } }, m.name), e('div', { style: { fontSize: 11, color: C.sub } }, m.tag || "自由人")),
+              e('span', { style: { fontSize: 12, color: C.blue, fontWeight: 700 } }, "管理 ⚙️")
             )))
           );
         }
 
-        // ─── 5. CONTAINER ───
+        // ─── CONTAINER CONTAINER ───
         function TripMateV2() {
           const [activeTab, setActiveTab] = useState("home");
           const [currentDay, setCurrentDay] = useState(1);
@@ -408,12 +437,44 @@
           const [planBFreeRiderId, setPlanBFreeRiderId] = useState(INITIAL_MEMBERS[2]?.id || "");
           const [isModalOpen, setIsModalOpen] = useState(false);
           const [selectedMember, setSelectedMember] = useState(null);
+          
+          // 两个控制归档与清空流水的全新 React State 
           const [note, setNote] = useState({});
+          const [historyTrips, setHistoryTrips] = useState([]);
+
+          // 核心闭环：一键将当前数据抽离出来存入历史画卷，然后全量洗牌清空当前行程
+          const handleArchiveTrip = () => {
+            const currentTotalSpend = records.reduce((sum, r) => sum + r.amount, 0);
+            const newArchive = {
+              id: Date.now(),
+              totalSpend: currentTotalSpend,
+              memberCount: members.length,
+              notes: { ...note },
+              recordsSnapshot: [...records]
+            };
+            
+            // 压入历史库
+            setHistoryTrips([newArchive, ...historyTrips]);
+            // 全盘一键清空重置
+            setRecords([]);
+            setNote({});
+            setCurrentDay(1);
+            setActiveTab("home");
+            alert("🎉 本次小队行程已成功结算结项！当前流水与账本已安全复位清零，可视化攻略名片已成功沉淀至下方公域画卷橱窗！");
+          };
+
+          // 移出队伍（删除搭子函数）
+          const handleDeleteMember = (id) => {
+            if (members.length <= 1) {
+              return alert("队伍里至少要留一个人，别把自己也开除了呀！");
+            }
+            setMembers(members.filter(m => m.id !== id));
+          };
 
           const renderScreen = () => {
             if (activeTab === "records") return e(RecordsScreen, { records, members });
             if (activeTab === "scan") return e(ScanScreen, { currentDay, members, onAddScannedRecord: r => setRecords([r, ...records]) });
-            if (activeTab === "stats") return e(StatsScreen, { records, members, isPlanB, planBFreeRiderId });
+            if (activeTab === "stats") return e(StatsScreen, { records, members, isPlanB, planBFreeRiderId, note, onArchiveTrip: handleArchiveTrip, historyTrips });
             if (activeTab === "members") return e(MembersScreen, { members, onAddMember: m => setMembers([...members, m]), isPlanB, setIsPlanB, planBFreeRiderId, setPlanBFreeRiderId, onSelectMember: m => setSelectedMember(m) });
             return e(HomeScreen, { records, members, currentDay, setCurrentDay, onOpenAdd: () => setIsModalOpen(true), note, setNote, totalDays, setTotalDays });
           };
@@ -427,7 +488,7 @@
               ))
             ),
             e(QuickRecordModal, { isOpen: isModalOpen, onClose: () => setIsModalOpen(false), members, currentDay, onSave: r => setRecords([r, ...records]) }),
-            e(MemberProfileModal, { member: selectedMember, isOpen: !!selectedMember, onClose: () => setSelectedMember(null), onUpdate: m => setMembers(members.map(i => i.id === m.id ? m : i)) })
+            e(MemberProfileModal, { member: selectedMember, isOpen: !!selectedMember, onClose: () => setSelectedMember(null), onUpdate: m => setMembers(members.map(i => i.id === m.id ? m : i)), onDelete: handleDeleteMember })
           );
         }
 
