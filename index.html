@@ -34,6 +34,7 @@
     <script type="text/babel">
         const { useState, useMemo } = React;
 
+        // ─── 1. DESIGN TOKENS ───
         const C = {
           bg: "#F2F4F7", card: "#FFFFFF", orange: "#FF6B2B", orangeLight: "#FFF0EA",
           blue: "#4A7CFF", blueLight: "#EEF3FF", green: "#2DC76D", greenLight: "#E8FAF1",
@@ -59,6 +60,7 @@
           { id: 3, name: "Tony", emoji: "🧑‍🦰", color: C.green },
         ];
 
+        // ─── 2. 公用 UI 组件 ───
         function Card({ children, style, onClick }) {
           return (
             <div onClick={onClick} style={{ background: C.card, borderRadius: 18, padding: 18, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}>{children}</div>
@@ -83,6 +85,7 @@
           );
         }
 
+        // ─── 3. 手动随手记弹窗 ───
         function QuickRecordModal({ isOpen, onClose, members, onSave, currentDay }) {
           if (!isOpen) return null;
           const [amount, setAmount] = useState("");
@@ -140,6 +143,7 @@
           );
         }
 
+        // 🗺 视图：旅程主看板
         function HomeScreen({ records, members, currentDay, setCurrentDay, onOpenAdd, note, setNote, totalDays, setTotalDays }) {
           const totalBudget = 20000;
           const [isEditingDays, setIsEditingDays] = useState(false);
@@ -230,6 +234,7 @@
           );
         }
 
+        // 📒 视图：账本
         function RecordsScreen({ records, members }) {
           return (
             <div style={{ padding: "16px 16px 90px" }}>
@@ -251,6 +256,7 @@
           );
         }
 
+        // 📷 视图：全场景 AI 扫单
         function ScanScreen({ currentDay, members, onAddScannedRecord }) {
           const [image, setImage] = useState(null);
           const [scanState, setScanState] = useState("idle"); 
@@ -272,7 +278,7 @@
             },
             overseas: {
               label: "🇯🇵/🇺🇸 全球多语言外币小票 (自动换算)",
-              store: "MatsuKiyo (マツモトキヨシ药局)", title: "安耐晒防晒霜 + 龙角散润喉糖", category: "购物",
+              store: "MatsuKiyo (マツモトキヨシ薬局)", title: "安耐晒防晒霜 + 龙角散润喉糖", category: "购物",
               amountRaw: "¥4,680 JPY", amountCNY: 215, lang: "外币汇率换算(日元)",
               details: ["1. ANESSA Perfect UV 60ml ¥2,980", "2. 龍角散ダイレクト 16包×3 ¥1,700", "⚠️ AI已按今日最新汇率 0.046 自动折算为本币"]
             }
@@ -402,9 +408,151 @@
           );
         }
 
-        function StatsScreen() { return <div style={{ padding: 16 }}><div style={{ fontSize: 16, fontWeight: 900, marginBottom: 16 }}>开销数据统计</div><Card style={{ color: C.sub, textAlign: "center" }}>📊 暂无账目数据，请在旅程页或扫单页记账后查看分析</Card></div>; }
+        // 📊 视图：核心统计板块 + 贪心最优分账结清算法
+        function StatsScreen({ records, members }) {
+          const totalSpend = useMemo(() => records.reduce((sum, r) => sum + r.amount, 0), [records]);
+          const avgSpend = useMemo(() => members.length > 0 ? (totalSpend / members.length).toFixed(2) : 0, [totalSpend, members]);
+
+          // 1. 各品类开销统计占比
+          const catStats = useMemo(() => {
+            const stats = {};
+            CATEGORIES.forEach(c => stats[c] = 0);
+            records.forEach(r => { if (stats[r.category] !== undefined) stats[r.category] += r.amount; });
+            return stats;
+          }, [records]);
+
+          // 2. 核心分账算法：计算出最优最简的清账路径
+          const dynamicTransfers = useMemo(() => {
+            if (records.length === 0) return [];
+            
+            // 计算每个人实际垫付了多少钱
+            const paidMap = {};
+            members.forEach(m => paidMap[m.id] = 0);
+            records.forEach(r => { if (paidMap[r.memberId] !== undefined) paidMap[r.memberId] += r.amount; });
+
+            // 计算个人的净头寸 (垫付额 - 人均应付额)
+            // 正数代表系统需要退还他钱，负数代表他需要补钱给别人
+            const perPersonCost = totalSpend / members.length;
+            const balances = members.map(m => ({
+              id: m.id,
+              name: m.name,
+              net: paidMap[m.id] - perPersonCost
+            }));
+
+            // 分离出两组：债权人(应收) 和 债务人(应付)
+            let creditors = balances.filter(b => b.net > 0.01).sort((a, b) => b.net - a.net);
+            let debtors = balances.filter(b => b.net < -0.01).sort((a, b) => a.net - b.net);
+
+            const transfers = [];
+            let i = 0, j = 0;
+
+            // 经典贪心清账收敛算法
+            while (i < debtors.length && j < creditors.length) {
+              let debtor = debtors[i];
+              let creditor = creditors[j];
+
+              // 决定本次转账的最小公约数金额
+              let amountToTransfer = Math.min(Math.abs(debtor.net), creditor.net);
+
+              if (amountToTransfer > 0.01) {
+                transfers.push({
+                  from: debtor.name,
+                  to: creditor.name,
+                  amount: amountToTransfer.toFixed(2)
+                });
+              }
+
+              // 更新剩余头寸
+              debtor.net += amountToTransfer;
+              creditor.net -= amountToTransfer;
+
+              if (Math.abs(debtor.net) < 0.01) i++;
+              if (Math.abs(creditor.net) < 0.01) j++;
+            }
+            return transfers;
+          }, [records, members, totalSpend]);
+
+          if (records.length === 0) {
+            return (
+              <div style={{ padding: 16, pb: 90 }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 16 }}>📊 智能清账统计</div>
+                <Card style={{ color: C.sub, textAlign: "center", padding: "60px 0" }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📉</div>
+                  <div>当前大账本空空如也，无数据可算。</div>
+                  <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>请去主页记账或扫单后，算法会自动生成结账路径。</div>
+                </Card>
+              </div>
+            );
+          }
+
+          return (
+            <div style={{ padding: "16px 16px 100px" }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 }}>📊 团队费用分账看板</div>
+              <div style={{ fontSize: 11, color: C.sub, marginBottom: 16 }}>基于全局债务最小化算法，自动计算最优清账路径。</div>
+
+              {/* 开销大盘总览卡片 */}
+              <Card style={{ marginBottom: 16, background: `linear-gradient(135deg, ${C.blue} 0%, #355CC2 100%)`, color: "#fff" }}>
+                <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 700 }}>团队出行总花费 (已全部折算)</div>
+                <div style={{ fontSize: 32, fontWeight: 900, margin: "6px 0 14px" }}>¥{totalSpend.toLocaleString()}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: 12, fontSize: 13, fontWeight: 700 }}>
+                  <span>👥 搭子总人数: {members.length} 人</span>
+                  <span style={{ color: C.yellow }}>👤 人均应付: ¥{avgSpend}</span>
+                </div>
+              </Card>
+
+              {/* ⚡ 核心分账最优清账路径方案 */}
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>⚖️ 智能结清方案 <Tag label="最优路径" bg={C.greenLight} color={C.green} /></div>
+              <Card style={{ marginBottom: 20, border: `2px solid ${C.green}20` }}>
+                {dynamicTransfers.length === 0 ? (
+                  <div style={{ textAlign: "center", color: C.green, fontWeight: 700, fontSize: 13, padding: "10px 0" }}>🎉 太棒了！当前各人垫付刚好完全扯平，谁都不欠谁！</div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 11, color: C.sub, marginBottom: 12 }}>只需按照以下提示私下微信/支付宝转账即可一步到位结清债务：</div>
+                    {dynamicTransfers.map((t, idx) => (
+                      <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: idx !== dynamicTransfers.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: C.red }}>{t.from}</span>
+                          <span style={{ fontSize: 11, color: C.sub }}>需转账给</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: C.green }}>{t.to}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 15, fontWeight: 900, color: C.ink }}>¥{t.amount}</span>
+                          <button onClick={() => {
+                            navigator.clipboard.writeText(`${t.from}需转账给${t.to} ￥${t.amount}`);
+                            alert("复制成功！可直接粘贴发送到群聊。");
+                          }} style={{ border: "none", background: C.bg, padding: "4px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, color: C.sub, cursor: "pointer" }}>📋 复制</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              {/* 分类开销比例条 */}
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 12 }}>🍰 各消费业态占比</div>
+              <Card>
+                {CATEGORIES.map(cat => {
+                  const amt = catStats[cat];
+                  const pct = totalSpend > 0 ? Math.round((amt / totalSpend) * 100) : 0;
+                  return (
+                    <div key={cat} style={{ marginBottom: 14 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                        <span style={{ color: C.ink }}>{CAT_ICONS[cat]} {cat}</span>
+                        <span style={{ color: C.sub }}>¥{amt.toFixed(1)} ({pct}%)</span>
+                      </div>
+                      <ProgressBar pct={pct} color={CAT_COLORS[cat]} height={6} />
+                    </div>
+                  );
+                })}
+              </Card>
+            </div>
+          );
+        }
+
+        // 👥 视图：搭子社交
         function MembersScreen() { return <div style={{ padding: 16 }}><div style={{ fontSize: 16, fontWeight: 900, marginBottom: 16 }}>旅行搭子与个人中心</div><Card style={{ color: C.sub, textAlign: "center" }}>👥 等待下一阶段细化搭子管理与 B 方案设置面板</Card></div>; }
 
+        // ─── 5. APP 核心控制主骨架 ───
         function TripMateV2() {
           const [activeTab, setActiveTab] = useState("home");
           const [currentDay, setCurrentDay] = useState(1);
@@ -420,7 +568,7 @@
               case "home": return <HomeScreen records={records} members={members} currentDay={currentDay} setCurrentDay={setCurrentDay} onOpenAdd={() => setIsModalOpen(true)} note={note} setNote={setNote} totalDays={totalDays} setTotalDays={setTotalDays} />;
               case "records": return <RecordsScreen records={records} members={members} />;
               case "scan": return <ScanScreen currentDay={currentDay} members={members} onAddScannedRecord={(newRec) => setRecords([newRec, ...records])} />;
-              case "stats": return <StatsScreen />;
+              case "stats": return <StatsScreen records={records} members={members} />;
               case "members": return <MembersScreen />;
               default: return <HomeScreen records={records} members={members} currentDay={currentDay} setCurrentDay={setCurrentDay} onOpenAdd={() => setIsModalOpen(true)} note={note} setNote={setNote} totalDays={totalDays} setTotalDays={setTotalDays} />;
             }
@@ -430,6 +578,7 @@
             <div style={{ background: C.bg, minHeight: "100vh", position: "relative" }}>
               {renderScreen()}
 
+              {/* 吸底导航 */}
               <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255, 255, 255, 0.96)", backdropFilter: "blur(10px)", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-around", padding: "10px 0 24px", zIndex: 900 }}>
                 {TABS.map(t => (
                   <div key={t.key} onClick={() => setActiveTab(t.key)} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", minWidth: 55 }}>
