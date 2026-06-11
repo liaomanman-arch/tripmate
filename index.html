@@ -1,24 +1,25 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TripMate 团队协同完全体</title>
+    <title>TripMate 測試艙 - 實時多端協同</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; background: #F5F7FA; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; color: #2A303C; }
+        body { margin: 0; background: #F5F7FA; font-family: -apple-system, sans-serif; color: #2A303C; padding-bottom: 40px; }
         * { box-sizing: border-box; }
-        ::-webkit-scrollbar { display: none; }
-        .no-scroll { -ms-overflow-style: none; scrollbar-width: none; overflow-x: auto; display: flex; gap: 10px; }
-        
-        /* 模拟云端广播动画 */
-        @keyframes pulseBroadcast {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.03); box-shadow: 0 0 15px rgba(74,124,255,0.4); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .cloud-sync-active { animation: pulseBroadcast 1s ease-in-out; }
+        .container { max-width: 500px; margin: 0 auto; padding: 16px; }
+        .card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 16px; }
+        .btn { width: 100%; background: #FF6B2B; color: #fff; border: none; border-radius: 12px; padding: 12px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 10px; }
+        .btn-secondary { background: #4A7CFF; }
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 12px; color: #8A8FA3; font-weight: bold; margin-bottom: 4px; }
+        .input-group input, .input-group select { width: 100%; border: 1px solid #ECEEF2; border-radius: 8px; padding: 10px; outline: none; }
+        .record-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #F5F7FA; }
+        .badge { font-size: 10px; background: #EEF3FF; color: #4A7CFF; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+        .loading { text-align: center; color: #FF6B2B; font-weight: bold; font-size: 14px; margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -26,206 +27,191 @@
 
     <script>
         const e = React.createElement;
-        const { useState, useMemo, useEffect } = React;
+        const { useState, useEffect } = React;
 
-        // ─── DESIGN TOKENS ───
-        const C = {
-          bg: "#F5F7FA", card: "#FFFFFF", orange: "#FF6B2B", orangeLight: "#FFF0EA",
-          blue: "#4A7CFF", blueLight: "#EEF3FF", green: "#2DC76D", greenLight: "#E8FAF1",
-          ink: "#1A1D23", sub: "#8A8FA3", border: "#ECEEF2", textMain: "#2A303C"
-        };
+        // ==========================================
+        // 🛠️ 請填入你第一步在 Supabase 拿到的憑證
+        // ==========================================
+        const SUPABASE_URL = "你的_SUPABASE_URL"; 
+        const SUPABASE_ANON_KEY = "你的_SUPABASE_ANON_KEY";
+        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const CATEGORIES = ["餐饮", "购物", "门票", "交通", "住宿", "其他"];
-        const CAT_ICONS = { 餐饮: "🍜", 购物: "🛍️", 门票: "🎟️", 交通: "🚄", 住宿: "🏨", 其他: "📦" };
+        function App() {
+            const [records, setRecords] = useState([]);
+            const [myKey, setMyKey] = useState(localStorage.getItem("gemini_key") || "");
+            const [myName, setMyName] = useState(localStorage.getItem("user_name") || "探險家_" + Math.floor(Math.random()*1000));
+            const [isLoading, setIsLoading] = useState(false);
 
-        const ME_USER = { id: 999, name: "我 (本机)", emoji: "👤", color: "#6E7781" };
-        const GANG_USER = { id: 1, name: "刚子 (B端用户)", emoji: "🦊", color: C.orange };
-        const CONG_USER = { id: 2, name: "大聪 (C端用户)", emoji: "🐼", color: C.blue };
+            // 手動記帳表單狀態
+            const [title, setTitle] = useState("");
+            const [amount, setAmount] = useState("");
+            const [category, setCategory] = useState("餐飲");
 
-        // UI UTILS COMPONENTS
-        function Card({ children, style, className }) {
-          return e('div', {
-            className,
-            style: { background: C.card, borderRadius: 18, padding: 18, boxShadow: "0 4px 20px rgba(0,0,0,0.03)", transition: "all 0.3s", ...style }
-          }, children);
-        }
-
-        function Tag({ label, color, bg }) {
-          return e('span', {
-            style: { fontSize: 11, fontWeight: 700, color: color || C.orange, background: bg || C.orangeLight, borderRadius: 8, padding: "3px 8px", display: "inline-block" }
-          }, label);
-        }
-
-        // ─── MAIN APP CONTAINER ───
-        function TripMateComplete() {
-          const [activeTab, setActiveTab] = useState("sync"); // 默认切到协同看板展示核心逻辑
-          const [currentDay, setCurrentDay] = useState(1);
-          const [totalDays, setTotalDays] = useState(3);
-          
-          // 模拟全量共享账本（包含多端同步过来的数据）
-          const [records, setRecords] = useState([
-            { id: 101, title: "星巴克咖啡", category: "餐饮", store: "机场店", amount: 76, memberId: 999, day: 1, device: "本机" },
-            { id: 102, title: "接机专车越野", category: "交通", store: "神州租车", amount: 350, memberId: 1, day: 1, device: "刚子的iPhone" },
-            { id: 103, title: "景区通票3张", category: "门票", store: "售票处", amount: 480, memberId: 2, day: 1, device: "大聪的小米" }
-          ]);
-
-          const [members, setMembers] = useState([ME_USER, GANG_USER, CONG_USER]);
-          const [note, setNote] = useState({ 1: "落地成都，准备吃火锅" });
-          const [historyTrips, setHistoryTrips] = useState([]);
-          
-          // 模拟跨端操作动画状态
-          const [syncTriggered, setSyncTriggered] = useState(false);
-
-          // 核心重构业务：模拟远程搭子在他们自己的手机上点了付款！
-          const simulateRemotePay = (remoteUser, title, amount, cat) => {
-            setSyncTriggered(true);
-            const newRemoteRecord = {
-              id: Date.now(),
-              title,
-              category: cat,
-              store: "云端实时商户",
-              amount: parseFloat(amount),
-              memberId: remoteUser.id,
-              day: currentDay,
-              device: `${remoteUser.name}的手机端`
-            };
-            
-            // 模拟延迟写入分布式数据库
-            setTimeout(() => {
-              setRecords(prev => [newRemoteRecord, ...prev]);
-              setSyncTriggered(false);
-            }, 600);
-          };
-
-          // 归档并导出公域裂变攻略
-          const handleArchiveAndShare = () => {
-            if (records.length === 0) return alert("暂无流水数据可打包。");
-            const currentTotal = records.reduce((sum, r) => sum + r.amount, 0);
-            
-            const archivePayload = {
-              id: Date.now(),
-              totalSpend: currentTotal,
-              memberCount: members.length,
-              notes: { ...note },
-              recordsSnapshot: [...records]
+            // 儲存個人設定到本地快取
+            const saveProfile = () => {
+                localStorage.setItem("gemini_key", myKey);
+                localStorage.setItem("user_name", myName);
+                alert("⚙️ 設定已儲存！");
             };
 
-            setHistoryTrips([archivePayload, ...historyTrips]);
-            // 复位清空
-            setRecords([]);
-            setNote({});
-            setMembers([ME_USER]); // 恢复单人
-            setCurrentDay(1);
-            setActiveTab("share"); // 切换到分享看板
-            alert("🚀 团队行程完美归档！云端临时房间已安全解散，数据已为您自动转化生成【高颜值公域裂变攻略卡片】，任何人均可复制导入！");
-          };
+            // 1. 從雲端獲取初始歷史數據
+            const fetchInitialRecords = async () => {
+                const { data, error } = await supabase
+                    .from('trip_records')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                if (data) setRecords(data);
+            };
 
-          const totalSpend = useMemo(() => records.reduce((sum, r) => sum + r.amount, 0), [records]);
-          const perPersonCost = (totalSpend / Math.max(1, members.length)).toFixed(2);
+            // 2. 核心：啟動 WebSocket 多端秒級實時同步監聽
+            useEffect(() => {
+                fetchInitialRecords();
 
-          return e('div', { style: { minHeight: "100vh", paddingBottom: 100 } },
-            // 头部全局状态栏
-            e('div', { style: { background: C.ink, color: "#fff", padding: "20px 16px", borderBottomLeftRadius: 20, borderBottomRightRadius: 20 } },
-              e('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
-                e('div', null,
-                  e('div', { style: { fontSize: 12, color: C.sub, fontWeight: 700 } }, "📡 CLOUD REALTIME SYNC"),
-                  e('div', { style: { fontSize: 18, fontWeight: 900, marginTop: 4, display: "flex", alignItems: "center", gap: 6 } }, 
-                    "西南特种兵突击队", 
-                    e(Tag, { label: members.length > 1 ? "🟢 多端实时同步中" : "🎒 个人单机模式", color: "#fff", bg: "rgba(255,255,255,0.15)" })
-                  )
+                const channel = supabase
+                    .channel('realtime-ledger')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trip_records' }, payload => {
+                        // 📡 攔截到雲端廣播（可能是別人的手機提交了數據），立刻無感塞入本地視圖
+                        setRecords(prev => [payload.new, ...prev]);
+                    })
+                    .subscribe();
+
+                return () => supabase.removeChannel(channel);
+            }, []);
+
+            // 3. 手動記帳提交至雲端
+            const handleManualSubmit = async (ev) => {
+                ev.preventDefault();
+                if (!title || !amount) return alert("請填寫品項和金額！");
+
+                const { error } = await supabase.from('trip_records').insert([{
+                    title,
+                    amount: parseFloat(amount),
+                    category,
+                    payer_name: myName,
+                    device_source: "手動輸入"
+                }]);
+
+                if (!error) {
+                    setTitle(""); setAmount("");
+                } else {
+                    alert("上傳失敗: " + error.message);
+                }
+            };
+
+            // 4. 核心：Gemini AI 多語種小票收據識別
+            const handleFileChange = async (ev) => {
+                const file = ev.target.files[0];
+                if (!file) return;
+                if (!myKey) return alert("請先在下方填入你的 Gemini API Key！");
+
+                setIsLoading(true);
+
+                // 將圖片轉為 Gemini 需要的 Base64 格式
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = async () => {
+                    try {
+                        const base64Data = reader.result.split(',')[1];
+                        
+                        // 調用 2026 年最新最划算的 gemini-2.5-flash 模型
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${myKey}`;
+                        
+                        const prompt = "你是一個跨國旅行對帳專家。請嚴格審計這張包含日/韓/法/英/中語種的收據/小票。精確提取出：1.商戶名或商品名(只要名字，不超過10個字) 2.消費總金額(必須是純數字，如120或55.5) 3.消費類別(只能從 '餐飲', '購物', '門票', '交通', '住宿', '其他' 中挑選一個最貼切的)。請嚴格、只返回一個標準的 JSON 對象，格式如下，不要帶有任何 markdown 標籤或額外解釋：{\"title\":\"商戶名\",\"amount\":100,\"category\":\"餐飲\"}";
+
+                        const response = await fetch(apiUrl, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [
+                                        { text: prompt },
+                                        { inlineData: { mimeType: file.type, data: base64Data } }
+                                    ]
+                                }]
+                            })
+                        });
+
+                        const resData = await response.json();
+                        const rawText = resData.candidates[0].content.parts[0].text;
+                        
+                        // 清理可能被大模型污染的 markdown 符號
+                        const cleanJsonText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+                        const parsedResult = JSON.parse(cleanJsonText);
+
+                        // 🤖 解析成功後，直接秒級打入 Supabase 雲端數據庫
+                        const { error } = await supabase.from('trip_records').insert([{
+                            title: parsedResult.title || "AI識別帳目",
+                            amount: parseFloat(parsedResult.amount) || 0,
+                            category: parsedResult.category || "其他",
+                            payer_name: myName,
+                            device_source: "Gemini AI 掃單"
+                        }]);
+
+                        if (error) alert("AI數據同步雲端失敗: " + error.message);
+
+                    } catch (err) {
+                        console.error(err);
+                        alert("AI 解析出錯，請確保小票清晰且 API Key 正確！系統返回：" + err.message);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                };
+            };
+
+            const totalSpend = records.reduce((sum, r) => sum + r.amount, 0);
+
+            return e('div', { className: "container" },
+                // 雲端實時狀態與看板
+                e('div', { className: "card", style: { background: "#1A1D23", color: "#fff" } },
+                    e('div', { style: { fontSize: 12, color: "#8A8FA3" } }, "📡 聯網測試艙 · 多端實時聚合看板"),
+                    e('div', { style: { fontSize: 32, fontWeight: 900, margin: "10px 0" } }, `NT$ ${totalSpend.toLocaleString()}`),
+                    e('div', { style: { fontSize: 12, opacity: 0.8 } }, `目前小隊共產生 ${records.length} 筆流水`)
                 ),
-                e('span', { style: { fontSize: 24 } }, "⚡")
-              )
-            ),
 
-            // 选项卡切换
-            e('div', { style: { display: "flex", background: "#fff", padding: "4px", borderRadius: 12, margin: "16px" } },
-              e('button', { onClick: () => setActiveTab("sync"), style: { flex: 1, padding: "10px", border: "none", borderRadius: 10, background: activeTab === "sync" ? C.ink : "transparent", color: activeTab === "sync" ? "#fff" : C.textMain, fontWeight: 800, fontSize: 13 } }, "🔄 协同舱控制台"),
-              e('button', { onClick: () => setActiveTab("home"), style: { flex: 1, padding: "10px", border: "none", borderRadius: 10, background: activeTab === "home" ? C.ink : "transparent", color: activeTab === "home" ? "#fff" : C.textMain, fontWeight: 800, fontSize: 13 } }, "🗺 实时共享大账"),
-              e('button', { onClick: () => setActiveTab("share"), style: { flex: 1, padding: "10px", border: "none", borderRadius: 10, background: activeTab === "share" ? C.ink : "transparent", color: activeTab === "share" ? "#fff" : C.textMain, fontWeight: 800, fontSize: 13 } }, "✨ 攻略分享裂变")
-            ),
+                // 模組 1：Gemini AI 智能多語種掃單
+                e('div', { className: "card" },
+                    e('div', { style: { fontWeight: "bold", marginBottom: 10 } }, "📷 Gemini 多語種 AI 掃單"),
+                    e('input', { type: "file", accept: "image/*", onChange: handleFileChange, style: { display: "none" }, id: "camera-input" }),
+                    e('label', { htmlFor: "camera-input", className: "btn btn-secondary", style: { display: "block", textAlign: "center", cursor: "pointer" } }, "📸 拍攝或上傳多語種收據小票"),
+                    isLoading && e('div', { className: "loading" }, "⏳ Gemini 2.5 多模態視覺芯片解析中...")
+                ),
 
-            // ─── 模块 1：协同舱控制台（核心演示多端怎么同步） ───
-            activeTab === "sync" && e('div', { style: { padding: "0 16px" } },
-              e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 12, color: C.sub } }, "🧪 模拟异地多端同时记账交互"),
-              e(Card, { style: { marginBottom: 16, border: `2px dashed ${C.blue}` } },
-                e('p', { style: { fontSize: 13, margin: "0 0 12px", lineHeight: "1.5", fontWeight: 600 } }, "💡 假如这时候在另一条街，【刚子】或者【大聪】用他们自己手机的 APP 记了账，如何让所有人都看到？点击下方按钮模拟远程发射数据："),
-                e('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } },
-                  e('button', {
-                    onClick: () => simulateRemotePay(GANG_USER, "太古里火锅晚宴", 420, "餐饮"),
-                    style: { background: C.orangeLight, color: C.orange, border: "none", padding: "12px", borderRadius: 10, fontWeight: 700, fontSize: 12 }
-                  }, "🦊 模拟【刚子】手机付 ¥420"),
-                  e('button', {
-                    onClick: () => simulateRemotePay(CONG_USER, "宽窄巷子文创伴手礼", 185, "购物"),
-                    style: { background: C.blueLight, color: C.blue, border: "none", padding: "12px", borderRadius: 10, fontWeight: 700, fontSize: 12 }
-                  }, "🐼 模拟【大聪】手机付 ¥185")
+                // 模組 2：手動隨手記一筆
+                e('div', { className: "card" },
+                    e('div', { style: { fontWeight: "bold", marginBottom: 10 } }, "➕ 隨手記一筆"),
+                    e('form', { onSubmit: handleManualSubmit },
+                        e('div', { className: "input-group" }, e('label', null, "消費品項"), e('input', { type: "text", value: title, onChange: ev => setTitle(ev.target.value), placeholder: "例如：東京一蘭拉麵" })),
+                        e('div', { className: "input-group" }, e('label', null, "金額"), e('input', { type: "number", step: "any", value: amount, onChange: ev => setAmount(ev.target.value), placeholder: "0.00" })),
+                        e('div', { className: "input-group" }, e('label', null, "類別"), e('select', { value: category, onChange: ev => setCategory(ev.target.value) }, ['餐飲','購物','門票','交通','住宿','其他'].map(c => e('option', { key: c, value: c }, c)))),
+                        e('button', { type: "submit", className: "btn" }, "送出入賬")
+                    )
+                ),
+
+                // 模組 3：實時公共流水大賬本
+                e('div', { className: "card" },
+                    e('div', { style: { fontWeight: "bold", marginBottom: 10 } }, "🗺️ 小隊全端融合流水"),
+                    records.length === 0 ? e('div', { style: { color: "#8A8FA3", textAlign: "center", padding: "20px" } }, "🍉 暫無公共賬目，等待小隊成員輸入") :
+                    records.map(r => e('div', { key: r.id, className: "record-item" },
+                        e('div', null, 
+                            e('div', { style: { fontWeight: "bold", fontSize: "14px" } }, r.title),
+                            e('div', { style: { fontSize: "11px", color: "#8A8FA3", marginTop: "2px" } }, `👤 ${r.payer_name} · `, e('span', { className: "badge" }, r.device_source))
+                        ),
+                        e('div', { style: { fontWeight: "900", color: "#FF6B2B" } }, `+$${r.amount}`)
+                    ))
+                ),
+
+                // 模組 4：聯調測試身份設定
+                e('div', { className: "card", style: { background: "#F9FAFB" } },
+                    e('div', { style: { fontWeight: "bold", marginBottom: 10, fontSize: "13px" } }, "⚙️ 測試節點身份設定"),
+                    e('div', { className: "input-group" }, e('label', null, "我的測試暱稱（區分誰付的錢）"), e('input', { type: "text", value: myName, onChange: ev => setMyName(ev.target.value) })),
+                    e('div', { className: "input-group" }, e('label', null, "我的 Gemini API Key（本地快取，絕不上傳）"), e('input', { type: "password", value: myKey, onChange: ev => setMyKey(ev.target.value), placeholder: "AI 掃單必需" })),
+                    e('button', { onClick: saveProfile, className: "btn", style: { background: "#1A1D23" } }, "保存設定")
                 )
-              ),
-
-              e('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 12, color: C.sub } }, "📊 当前去中心化聚合看板"),
-              e(Card, { className: syncTriggered ? "cloud-sync-active" : "", style: { background: `linear-gradient(135deg, #2C323F 0%, ${C.ink} 100%)`, color: "#fff", marginBottom: 20 } },
-                e('div', { style: { fontSize: 11, opacity: 0.6 } }, syncTriggered ? "📡 正在拦截云端广播并重新计算对账单..." : "⚡ 已实时汇聚全端分布式流水"),
-                e('div', { style: { fontSize: 32, fontWeight: 900, margin: "10px 0" } }, `¥${totalSpend}`),
-                members.length > 1 && e('div', { style: { fontSize: 12, opacity: 0.8 } }, `当前团队建制：${members.length} 人 | 动态多端计算人均应付：¥${perPersonCost}`)
-              ),
-
-              members.length > 1 && e('button', {
-                onClick: handleArchiveAndShare,
-                style: { width: "100%", background: C.orange, color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 14 }
-              }, "🎉 全员无异议，一键结算行程并封存攻略")
-            ),
-
-            // ─── 模块 2：实时大账本（融合了多端来源的流水） ───
-            activeTab === "home" && e('div', { style: { padding: "0 16px" } },
-              e('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 } },
-                e('span', { style: { fontSize: 14, fontWeight: 800 } }, `全端融合流水清单 (${records.length} 笔)`),
-                e(Tag, { label: "多端高并发架构", color: C.green, bg: C.greenLight })
-              ),
-              records.length === 0 ? e('div', { style: { textAlign: "center", padding: "40px 0", color: C.sub } }, "账本已被清空复位，请在协同舱模拟加账。") :
-              records.map(r => {
-                const user = members.find(m => m.id === r.memberId) || ME_USER;
-                return e(Card, { key: r.id, style: { marginBottom: 10, padding: 14 } },
-                  e('div', { style: { display: "flex", alignItems: "center", gap: 12 } },
-                    e('div', { style: { width: 36, height: 36, borderRadius: "50%", background: user.color + "15", border: `2px solid ${user.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 } }, user.emoji),
-                    e('div', { style: { flex: 1 } },
-                      e('div', { style: { fontWeight: 800, fontSize: 14 } }, r.title),
-                      e('div', { style: { fontSize: 11, color: C.sub, marginTop: 2, display: "flex", gap: 6 } }, 
-                        e('span', null, `👤 付款人: ${user.name}`),
-                        e('span', { style: { color: C.blue } }, `📱 来源: ${r.device}`)
-                      )
-                    ),
-                    e('div', { style: { fontSize: 16, fontWeight: 900, color: C.ink } }, `¥${r.amount}`)
-                  )
-                );
-              })
-            ),
-
-            // ─── 模块 3：攻略分享与裂变营销（解决“怎么让人用得更多”） ───
-            activeTab === "share" && e('div', { style: { padding: "0 16px" } },
-              e('div', { style: { fontSize: 15, fontWeight: 800, marginBottom: 4 } }, "🧲 病毒式增长：高颜值路书攻略裂变"),
-              e('p', { style: { fontSize: 12, color: C.sub, margin: "0 0 16px" } }, "当用户独自探险或团队归档后，可将其发布至社交平台。新用户复制口令即可全量复刻通识财务框架。"),
-              
-              historyTrips.length === 0 ? e('div', { style: { textAlign: "center", padding: "40px 0", background: "#fff", borderRadius: 16, color: C.sub, fontSize: 13 } }, "💡 提示：请先在第一栏【协同舱控制台】中点击橙色按钮结束一段多端行程，此处将自动捕捉沉淀高价值的裂变路书！") :
-              historyTrips.map((trip, idx) => e(Card, { key: trip.id, style: { marginBottom: 16, borderLeft: `5px solid ${C.blue}` } },
-                e('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
-                  e('span', { style: { fontWeight: 900, fontSize: 14 } }, `✨ 独家路书 · 预算决算通识画卷`),
-                  e(Tag, { label: "小红书爆款模板", color: C.orange, bg: C.orangeLight })
-                ),
-                e('div', { style: { background: C.bg, padding: 12, borderRadius: 10, fontSize: 12, marginBottom: 12 } },
-                  e('div', { style: { marginBottom: 4 } }, `💰 全程总开销总决算: `, e('span', { style: { fontWeight: 800 } }, `¥${trip.totalSpend}`)),
-                  e('div', null, `👥 初始团队规模: `, e('span', { style: { fontWeight: 800 } }, `${trip.memberCount} 人联合探险`))
-                ),
-                e('button', {
-                  onClick: () => alert("📋 裂变口令复制成功！【快来复制本条口令 $TripMate://💰88.88¥ 复制整套西南特种兵路书架构，一键生成你的预算单！】"),
-                  style: { width: "100%", background: C.ink, color: "#fff", border: "none", borderRadius: 10, padding: "10px", fontWeight: 700, fontSize: 12 }
-                }, "🔗 复制高级图文分发链接 (带裂变邀请码)")
-              ))
-            )
-          );
+            );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(e(TripMateComplete));
+        root.render(e(App));
     </script>
 </body>
 </html>
