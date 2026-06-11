@@ -34,7 +34,6 @@
     <script type="text/babel">
         const { useState, useMemo } = React;
 
-        // ─── 1. DESIGN TOKENS ───
         const C = {
           bg: "#F2F4F7", card: "#FFFFFF", orange: "#FF6B2B", orangeLight: "#FFF0EA",
           blue: "#4A7CFF", blueLight: "#EEF3FF", green: "#2DC76D", greenLight: "#E8FAF1",
@@ -54,14 +53,12 @@
         const CAT_COLORS = { 餐饮: C.orange, 购物: C.blue, 门票: C.yellow, 交通: C.green, 住宿: "#9B59B6", 其他: C.sub };
         const CAT_ICONS = { 餐饮: "🍜", 购物: "🛍️", 门票: "🎟️", 交通: "🚄", 住宿: "🏨", 其他: "📦" };
 
-        // 默认团队成员
         const INITIAL_MEMBERS = [
           { id: 1, name: "小雨", emoji: "👩‍🦱", color: C.orange },
           { id: 2, name: "阿明", emoji: "👨‍🦳", color: C.blue },
           { id: 3, name: "Tony", emoji: "🧑‍🦰", color: C.green },
         ];
 
-        // ─── 2. 公用基础 UI 组件 ───
         function Card({ children, style, onClick }) {
           return (
             <div onClick={onClick} style={{ background: C.card, borderRadius: 18, padding: 18, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}>{children}</div>
@@ -86,7 +83,6 @@
           );
         }
 
-        // ─── 3. 手动随手记弹窗 ───
         function QuickRecordModal({ isOpen, onClose, members, onSave, currentDay }) {
           if (!isOpen) return null;
           const [amount, setAmount] = useState("");
@@ -144,11 +140,8 @@
           );
         }
 
-        // ─── 4. 各功能面板视图 ───
-
-        // 🗺 视图：旅程主看板
         function HomeScreen({ records, members, currentDay, setCurrentDay, onOpenAdd, note, setNote, totalDays, setTotalDays }) {
-          const totalBudget = 20000; // 默认测试总预算
+          const totalBudget = 20000;
           const [isEditingDays, setIsEditingDays] = useState(false);
 
           const dayRecords = useMemo(() => records.filter(r => r.day === currentDay), [records, currentDay]);
@@ -159,8 +152,6 @@
 
           return (
             <div style={{ padding: "16px 16px 90px" }}>
-              
-              {/* 自定义天数配置 */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, background: C.card, padding: "12px 16px", borderRadius: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.02)" }}>
                 <div>
                   <span style={{ fontSize: 11, color: C.sub, fontWeight: 700, display: "block" }}>🗺 旅程时限配置</span>
@@ -178,7 +169,6 @@
                 </button>
               </div>
 
-              {/* 动态时间线轴 */}
               <div style={{ marginBottom: 16 }}>
                 <div className="no-scroll" style={{ paddingBottom: 8 }}>
                   {daysArray.map(d => (
@@ -190,7 +180,6 @@
                 </div>
               </div>
 
-              {/* 实时累计支出预算卡片 */}
               <Card style={{ marginBottom: 16, background: `linear-gradient(135deg, ${C.ink} 0%, #2C323F 100%)`, color: "#fff" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>当前旅程账本总结 (已清零)</span>
@@ -202,7 +191,6 @@
                 <ProgressBar pct={budgetPct} color={C.orange} />
               </Card>
 
-              {/* 备忘录 */}
               <Card style={{ marginBottom: 20, padding: "14px 18px" }}>
                 <div style={{ fontSize: 11, color: C.sub, fontWeight: 800, marginBottom: 4 }}>📌 Day {currentDay} 随行备忘录</div>
                 <input type="text" value={note[currentDay] || ""} onChange={e => {
@@ -211,7 +199,6 @@
                 }} placeholder="输入今天的目的地或临时想法..." style={{ width: "100%", border: "none", padding: "4px 0", fontSize: 13, fontWeight: 700, color: C.ink, outline: "none", background: "transparent" }} />
               </Card>
 
-              {/* 每日消费细目 */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <span style={{ fontSize: 14, fontWeight: 800, color: C.ink }}>Day {currentDay} 消费流水 ({dayRecords.length} 笔)</span>
                 <button onClick={onOpenAdd} style={{ background: C.orangeLight, border: "none", borderRadius: 10, padding: "6px 12px", color: C.orange, fontWeight: 800, fontSize: 12 }}>➕ 随手记</button>
@@ -243,7 +230,6 @@
           );
         }
 
-        // 📒 视图：账本
         function RecordsScreen({ records, members }) {
           return (
             <div style={{ padding: "16px 16px 90px" }}>
@@ -265,16 +251,12 @@
           );
         }
 
-        // 📷 视图：全场景通识 AI 扫单仿真版
         function ScanScreen({ currentDay, members, onAddScannedRecord }) {
           const [image, setImage] = useState(null);
-          const [scanState, setScanState] = useState("idle"); // idle | scene_select | scanning | result
+          const [scanState, setScanState] = useState("idle"); 
           const [selectedPayer, setSelectedPayer] = useState(members[0].id);
-          
-          // 当前选中的模拟 AI 解析场景数据
           const [activeScene, setActiveScene] = useState("domestic");
 
-          // 三大高保真全场景 AI 解析字典 (模拟多语言、全币种、国内微信/支付宝全覆盖)
           const SCENE_DATA = {
             domestic: {
               label: "🇨🇳 国内物美/永辉超市纸质小票",
@@ -290,7 +272,7 @@
             },
             overseas: {
               label: "🇯🇵/🇺🇸 全球多语言外币小票 (自动换算)",
-              store: "MatsuKiyo (マツモトキヨシ薬局)", title: "安耐晒防晒霜 + 龙角散润喉糖", category: "购物",
+              store: "MatsuKiyo (マツモトキヨシ药局)", title: "安耐晒防晒霜 + 龙角散润喉糖", category: "购物",
               amountRaw: "¥4,680 JPY", amountCNY: 215, lang: "外币汇率换算(日元)",
               details: ["1. ANESSA Perfect UV 60ml ¥2,980", "2. 龍角散ダイレクト 16包×3 ¥1,700", "⚠️ AI已按今日最新汇率 0.046 自动折算为本币"]
             }
@@ -299,7 +281,6 @@
           const handleFileChange = (e) => {
             if (e.target.files && e.target.files[0]) {
               setImage(URL.createObjectURL(e.target.files[0]));
-              // 模拟触发：先让用户体验多场景分流
               setScanState("scene_select");
             }
           };
@@ -307,7 +288,6 @@
           const startScanning = (sceneKey) => {
             setActiveScene(sceneKey);
             setScanState("scanning");
-            // 2.5秒激光线扫描动画
             setTimeout(() => {
               setScanState("result");
             }, 2500);
@@ -336,7 +316,6 @@
               <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 }}>📷 通识全场景 AI 扫单</div>
               <div style={{ fontSize: 11, color: C.sub, marginBottom: 16 }}>只要包含金额，不论是国内超市小票、微信支付宝账单、亦或多国语言外币发票，AI 视觉均能实现一键全自动解构入账。</div>
 
-              {/* 1. 上传入口 */}
               {scanState === "idle" && (
                 <label style={{ display: "block" }}>
                   <input type="file" accept="image/*" capture="camera" onChange={handleFileChange} style={{ display: "none" }} />
@@ -348,7 +327,6 @@
                 </label>
               )}
 
-              {/* 2. 场景选择模拟器（专门解决未接真实AI后端时，让用户演练全覆盖功能） */}
               {scanState === "scene_select" && (
                 <Card>
                   <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12, textAlign: "center", color: C.orange }}>💡 模拟真实 AI 多模态视觉分类</div>
@@ -363,20 +341,18 @@
                 </Card>
               )}
 
-              {/* 3. 激光动画 */}
               {scanState === "scanning" && (
                 <Card style={{ position: "relative", height: 240, overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: C.ink }}>
                   {image && <img src={image} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.35 }} />}
                   <div className="scanner-line" />
                   <div style={{ zIndex: 10, textAlign: "center", color: "#fff" }}>
                     <div style={{ fontSize: 28, marginBottom: 8 }}>⚡</div>
-                    <div style={{延时 fontWeight: 800, fontSize: 14 }}>TripMate Vision 多模态正在智能读取...</div>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>TripMate Vision 多模态正在智能读取...</div>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>正在提取商户、识别多币种金额并解构购买明细</div>
                   </div>
                 </Card>
               )}
 
-              {/* 4. 全方位高保真多场景识别结果 */}
               {scanState === "result" && (
                 <div>
                   <Card style={{ background: C.ink, color: "#fff", marginBottom: 16 }}>
@@ -405,7 +381,6 @@
                     ))}
                   </Card>
 
-                  {/* 代付选择 */}
                   <Card style={{ marginBottom: 16, padding: 14 }}>
                     <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 10 }}>确认本次代付人</div>
                     <div style={{ display: "flex", gap: 10 }}>
@@ -427,18 +402,15 @@
           );
         }
 
-        // 📊 📊 视图：数据统计
         function StatsScreen() { return <div style={{ padding: 16 }}><div style={{ fontSize: 16, fontWeight: 900, marginBottom: 16 }}>开销数据统计</div><Card style={{ color: C.sub, textAlign: "center" }}>📊 暂无账目数据，请在旅程页或扫单页记账后查看分析</Card></div>; }
-        // 👥 👥 视图：搭子社交
         function MembersScreen() { return <div style={{ padding: 16 }}><div style={{ fontSize: 16, fontWeight: 900, marginBottom: 16 }}>旅行搭子与个人中心</div><Card style={{ color: C.sub, textAlign: "center" }}>👥 等待下一阶段细化搭子管理与 B 方案设置面板</Card></div>; }
 
-        // ─── 5. APP 核心控制主骨架 ───
         function TripMateV2() {
           const [activeTab, setActiveTab] = useState("home");
           const [currentDay, setCurrentDay] = useState(1);
-          const [totalDays, setTotalDays] = useState(3); // 默认干净的 3 天总行程，可任意由用户修改
+          const [totalDays, setTotalDays] = useState(3); 
           
-          const [records, setRecords] = useState([]); // 🔴 数据已彻底清零！
+          const [records, setRecords] = useState([]); 
           const [members] = useState(INITIAL_MEMBERS);
           const [isModalOpen, setIsModalOpen] = useState(false);
           const [note, setNote] = useState({});
@@ -458,7 +430,6 @@
             <div style={{ background: C.bg, minHeight: "100vh", position: "relative" }}>
               {renderScreen()}
 
-              {/* 吸底导航 */}
               <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255, 255, 255, 0.96)", backdropFilter: "blur(10px)", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-around", padding: "10px 0 24px", zIndex: 900 }}>
                 {TABS.map(t => (
                   <div key={t.key} onClick={() => setActiveTab(t.key)} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", minWidth: 55 }}>
