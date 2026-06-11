@@ -26,13 +26,20 @@
             box-shadow: 0 0 15px #FF6B2B;
             animation: scanMove 2s infinite linear;
         }
+
+        /* 碰一碰激活动画 */
+        @keyframes bumpPulse {
+            0% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.5; }
+        }
+        .bump-active { animation: bumpPulse 1.5s infinite ease-in-out; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        // ✅ 修正点 1：使用纯原生解构，彻底移除导致白屏崩溃的 import 关键字
         const { useState, useMemo } = React;
 
         // ─── 1. DESIGN TOKENS ───
@@ -57,12 +64,13 @@
 
         const MEMBER_EMOJIS = ["🦊", "🐼", "🦁", "🐸", "🐷", "🐨", "🐯", "🐱", "🐶"];
         const MEMBER_COLORS = [C.orange, C.blue, C.green, C.yellow, "#9B59B6", "#E74C3C", "#1ABC9C", "#34495E"];
+        const SOCIAL_TAGS = ["攻略狂魔", "财务担当", "无情拍照机", "躺平专业户", "豪爽金主", "特种兵团长"];
 
-        // ✅ 修正点 2：补齐初始成员底层数据，防止运行时报 undefined 错误
+        // 初始数据
         const INITIAL_MEMBERS = [
-          { id: 1, name: "刚子", emoji: "🦊", color: C.orange },
-          { id: 2, name: "大聪", emoji: "🐼", color: C.blue },
-          { id: 3, name: "小雨", emoji: "🐨", color: C.green }
+          { id: 1, name: "刚子", emoji: "🦊", color: C.orange, tag: "财务担当", bio: "本团唯一清醒的算账机器。" },
+          { id: 2, name: "大聪", emoji: "🐼", color: C.blue, tag: "无情拍照机", bio: "负责出片，别让我算账就行。" },
+          { id: 3, name: "小雨", emoji: "🐨", color: C.green, tag: "躺平专业户", bio: "跟着哥哥姐姐混，上车睡觉下车拍照。" }
         ];
 
         // ─── 2. UI UTILS ───
@@ -90,7 +98,7 @@
           );
         }
 
-        // ─── 3. MODAL ───
+        // ─── 3. MODALS ───
         function QuickRecordModal({ isOpen, onClose, members, onSave, currentDay }) {
           if (!isOpen) return null;
           const [amount, setAmount] = useState("");
@@ -143,6 +151,57 @@
                   </div>
                   <button type="submit" style={{ width: "100%", background: C.orange, color: "#fff", border: "none", borderRadius: 14, padding: "14px", fontSize: 16, fontWeight: 800 }}>确认记账</button>
                 </form>
+              </div>
+            </div>
+          );
+        }
+
+        // 新增：搭子个人名片与详细头像设置窗口
+        function MemberProfileModal({ member, isOpen, onClose, onUpdate }) {
+          if (!isOpen || !member) return null;
+          const [name, setName] = useState(member.name);
+          const [emoji, setEmoji] = useState(member.emoji);
+          const [tag, setTag] = useState(member.tag || "自由人");
+          const [bio, setBio] = useState(member.bio || "这个人很懒，什么都没写~");
+
+          const handleSave = () => {
+            onUpdate({ ...member, name, emoji, tag, bio });
+            onClose();
+          };
+
+          return (
+            <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, backdropFilter: "blur(5px)", padding: 20 }}>
+              <div style={{ background: C.card, width: "100%", maxWidth: 360, borderRadius: 24, padding: 24, position: "relative" }}>
+                <span onClick={onClose} style={{ position: "absolute", right: 20, top: 20, fontSize: 20, color: C.sub, cursor: "pointer" }}>✕</span>
+                <div style={{ textAlign: "center", marginBottom: 20 }}>
+                  <div style={{ width: 70, height: 70, borderRadius: "50%", background: member.color + "15", border: `3px solid ${member.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 12px" }}>{emoji}</div>
+                  <span style={{ fontSize: 12, color: C.blue, fontWeight: 700, background: C.blueLight, padding: "2px 8px", borderRadius: 6 }}>旅人数字档案 ID: #{member.id.toString().slice(-4)}</span>
+                </div>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginBottom: 16 }}>
+                  {MEMBER_EMOJIS.slice(0, 6).map(e => (
+                    <span key={e} onClick={() => setEmoji(e)} style={{ fontSize: 22, cursor: "pointer", padding: 6, background: emoji === e ? C.border : "transparent", borderRadius: 8 }}>{e}</span>
+                  ))}
+                </div>
+
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 11, color: C.sub, fontWeight: 700, display: "block", marginBottom: 4 }}>搭子昵称</label>
+                  <input type="text" value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", border: `1px solid ${C.border}`, padding: "10px 14px", borderRadius: 10, fontSize: 14, fontWeight: 700, outline: "none" }} />
+                </div>
+
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 11, color: C.sub, fontWeight: 700, display: "block", marginBottom: 4 }}>团队角色社交标签</label>
+                  <select value={tag} onChange={e => setTag(e.target.value)} style={{ width: "100%", border: `1px solid ${C.border}`, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 700, outline: "none" }}>
+                    {SOCIAL_TAGS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ fontSize: 11, color: C.sub, fontWeight: 700, display: "block", marginBottom: 4 }}>个性签名 (旅途宣言)</label>
+                  <textarea value={bio} onChange={e => setBio(e.target.value)} style={{ width: "100%", border: `1px solid ${C.border}`, padding: "10px", borderRadius: 10, fontSize: 12, outline: "none", height: 60, resize: "none" }} />
+                </div>
+
+                <button onClick={handleSave} style={{ width: "100%", background: C.ink, color: "#fff", border: "none", borderRadius: 12, padding: 12, fontWeight: 800, fontSize: 14 }}>保存搭子人设</button>
               </div>
             </div>
           );
@@ -493,38 +552,72 @@
           );
         }
 
-        // 👥 视图：搭子管理
-        function MembersScreen({ members, onAddMember, isPlanB, setIsPlanB, planBFreeRiderId, setPlanBFreeRiderId }) {
+        // 👥 视图：搭子管理（升级注入：碰一碰互联与名片设置模块）
+        function MembersScreen({ members, onAddMember, isPlanB, setIsPlanB, planBFreeRiderId, setPlanBFreeRiderId, onSelectMember }) {
           const [new_name, setNewName] = useState("");
+          const [bumpState, setBumpState] = useState("idle"); // idle, bumping, success
 
           const handleCreate = (e) => {
             e.preventDefault();
             if (!new_name.trim()) return;
             const randEmoji = MEMBER_EMOJIS[Math.floor(Math.random() * MEMBER_EMOJIS.length)];
             const randColor = MEMBER_COLORS[Math.floor(Math.random() * MEMBER_COLORS.length)];
-            onAddMember({ id: Date.now(), name: new_name.trim(), emoji: randEmoji, color: randColor });
+            onAddMember({ id: Date.now(), name: new_name.trim(), emoji: randEmoji, color: randColor, tag: "自由人", bio: "新加入的探险家" });
             setNewName("");
+          };
+
+          // 模拟线下极具社交仪式感的“碰一碰手机”组队网络
+          const triggerBumpInteract = () => {
+            setBumpState("bumping");
+            setTimeout(() => {
+              setBumpState("success");
+              const names = ["Tony特种兵", "卡卡姐", "王总(带飞模式)"];
+              const randomName = names[Math.floor(Math.random() * names.length)];
+              const randEmoji = MEMBER_EMOJIS[Math.floor(Math.random() * MEMBER_EMOJIS.length)];
+              onAddMember({
+                id: Date.now(), name: randomName, emoji: randEmoji, color: C.blue,
+                tag: randomName.includes("王总") ? "豪爽金主" : "特种兵团长",
+                bio: "通过线下NFC/碰一碰设备秒级同步加入。"
+              });
+              setTimeout(() => setBumpState("idle"), 2000);
+            }, 2000);
           };
 
           return (
             <div style={{ padding: "16px 16px 90px" }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 }}>👥 旅行搭子面板与系统配置</div>
-              <div style={{ fontSize: 11, color: C.sub, marginBottom: 16 }}>随心扩增您的旅行团队，并自由调节差异化计算逻辑。</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 }}>👥 移动探险小队与社交互联</div>
+              <div style={{ fontSize: 11, color: C.sub, marginBottom: 16 }}>点击搭子头像可自由设置个性头像、名字与社交人设标签。</div>
 
-              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>💡 分账结算算法模式切换</div>
+              {/* ⚡ 新增：极具路演资本的社交跨端无缝连接面板 */}
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>⚡ 线下跨设备面对面秒连</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+                <button onClick={triggerBumpInteract} disabled={bumpState !== "idle"} style={{ border: "none", background: bumpState === "bumping" ? C.orangeLight : C.card, borderRadius: 14, padding: "14px 10px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", cursor: "pointer" }}>
+                  <span style={{ fontSize: 24 }} className={bumpState === "bumping" ? "bump-active" : ""}>📱✨</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: C.ink }}>
+                    {bumpState === "idle" && "碰一碰对方手机"}
+                    {bumpState === "bumping" && "感知物理雷达中..."}
+                    {bumpState === "success" && "🎉 成功捕获新搭子"}
+                  </span>
+                </button>
+                <button onClick={() => alert("已调起手机原生多模态扫码器：正在监听团队加密房间二维码...")} style={{ border: "none", background: C.card, borderRadius: 14, padding: "14px 10px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", cursor: "pointer" }}>
+                  <span style={{ fontSize: 24 }}>🔲</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: C.ink }}>面对面扫码进群</span>
+                </button>
+              </div>
+
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>💡 分账结算算法模式</h4>
               <Card style={{ marginBottom: 20, border: isPlanB ? `2px solid ${C.orange}` : `2px solid ${C.blue}30` }}>
                 <div style={{ display: "flex", background: C.bg, padding: 4, borderRadius: 12, marginBottom: 14 }}>
-                  <button onClick={() => setIsPlanB(false)} style={{ flex: 1, border: "none", background: !isPlanB ? C.card : "transparent", color: !isPlanB ? C.blue : C.sub, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: !isPlanB ? "0 2px 8px rgba(0,0,0,0.05)" : "none" }}>
+                  <button onClick={() => setIsPlanB(false)} style={{ flex: 1, border: "none", background: !isPlanB ? C.card : "transparent", color: !isPlanB ? C.blue : C.sub, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
                     A 方案 (绝对平摊 AA)
                   </button>
-                  <button onClick={() => setIsPlanB(true)} style={{ flex: 1, border: "none", background: isPlanB ? C.card : "transparent", color: isPlanB ? C.orange : C.sub, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: isPlanB ? "0 2px 8px rgba(0,0,0,0.05)" : "none" }}>
+                  <button onClick={() => setIsPlanB(true)} style={{ flex: 1, border: "none", background: isPlanB ? C.card : "transparent", color: isPlanB ? C.orange : C.sub, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
                     B 方案 (指定金主免单)
                   </button>
                 </div>
 
                 {isPlanB ? (
                   <div style={{ background: C.orangeLight, padding: 12, borderRadius: 12, fontSize: 12, color: C.orange, fontWeight: 700 }}>
-                    <div style={{ marginBottom: 8 }}>🎯 已激活伴侣/金主关怀逻辑：指定某一个搭子本次旅行「完全免费不摊钱」，开销由其余人均摊！</div>
                     <label style={{ display: "block", fontSize: 11, color: C.ink, marginBottom: 6 }}>选择全场免单的搭子人选：</label>
                     <select value={planBFreeRiderId} onChange={e => setPlanBFreeRiderId(e.target.value)} style={{ width: "100%", padding: "8px", borderRadius: 8, border: `1px solid ${C.orange}`, outline: "none", fontSize: 13, fontWeight: 700 }}>
                       {members.map(m => (
@@ -534,19 +627,26 @@
                   </div>
                 ) : (
                   <div style={{ fontSize: 12, color: C.sub, lineHeight: "1.5", fontWeight: 600 }}>
-                    ✨ 标准通识模式。团队内所有人地位绝对平等。总开销自动除以当前所有搭子的总人数进行大锅饭均摊。
+                    ✨ 标准均摊。总开销自动除以当前所有搭子的总人数。
                   </div>
                 )}
               </Card>
 
-              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>👥 当前同伴名单 ({members.length} 人)</div>
+              {/* 社交队伍名单 */}
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>👥 小队成员名片簿 ({members.length} 人)</div>
               <Card style={{ marginBottom: 16 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {members.map(m => (
-                    <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, background: C.bg, padding: 10, borderRadius: 12 }}>
-                      <MemberDot member={m} size={30} />
-                      <span style={{ fontSize: 13, fontWeight: 800, color: C.ink }}>{m.name}</span>
-                      {isPlanB && m.id === parseInt(planBFreeRiderId) && <span style={{ fontSize: 10, background: C.orange, color: "#fff", padding: "1px 4px", borderRadius: 4, fontWeight: 900 }}>免单</span>}
+                    <div key={m.id} onClick={() => onSelectMember(m)} style={{ display: "flex", alignItems: "center", gap: 12, background: C.bg, padding: 12, borderRadius: 14, cursor: "pointer" }}>
+                      <MemberDot member={m} size={36} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: C.ink }}>{m.name}</span>
+                          <span style={{ fontSize: 10, background: m.color, color: "#fff", padding: "1px 6px", borderRadius: 6, fontWeight: 700 }}>{m.tag || "自由人"}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: C.sub, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>{m.bio}</div>
+                      </div>
+                      <div style={{ fontSize: 12, color: C.blue, fontWeight: 700 }}>编辑 ✍️</div>
                     </div>
                   ))}
                 </div>
@@ -554,8 +654,8 @@
 
               <Card>
                 <form onSubmit={handleCreate} style={{ display: "flex", gap: 10 }}>
-                  <input type="text" placeholder="输入新搭子昵称..." value={new_name} onChange={e => setNewName(e.target.value)} style={{ flex: 1, background: C.bg, border: "none", borderRadius: 12, padding: "12px 14px", fontSize: 14, outline: "none", fontWeight: 700 }} />
-                  <button type="submit" style={{ background: C.ink, color: "#fff", border: "none", borderRadius: 12, padding: "0 18px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>➕ 拉入队伍</button>
+                  <input type="text" placeholder="手动添加本地模拟搭子..." value={new_name} onChange={e => setNewName(e.target.value)} style={{ flex: 1, background: C.bg, border: "none", borderRadius: 12, padding: "12px 14px", fontSize: 14, outline: "none", fontWeight: 700 }} />
+                  <button type="submit" style={{ background: C.ink, color: "#fff", border: "none", borderRadius: 12, padding: "0 18px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>➕ 加入</button>
                 </form>
               </Card>
             </div>
@@ -574,7 +674,12 @@
           const [planBFreeRiderId, setPlanBFreeRiderId] = useState(INITIAL_MEMBERS[2]?.id || "");
 
           const [isModalOpen, setIsModalOpen] = useState(false);
+          const [selectedMember, setSelectedMember] = useState(null); // 控制个人设置窗口
           const [note, setNote] = useState({});
+
+          const handleUpdateMember = (updatedMember) => {
+            setMembers(members.map(m => m.id === updatedMember.id ? updatedMember : m));
+          };
 
           const renderScreen = () => {
             switch(activeTab) {
@@ -582,7 +687,7 @@
               case "records": return <RecordsScreen records={records} members={members} />;
               case "scan": return <ScanScreen currentDay={currentDay} members={members} onAddScannedRecord={(newRec) => setRecords([newRec, ...records])} />;
               case "stats": return <StatsScreen records={records} members={members} isPlanB={isPlanB} planBFreeRiderId={planBFreeRiderId} />;
-              case "members": return <MembersScreen members={members} onAddMember={(m) => setMembers([...members, m])} isPlanB={isPlanB} setIsPlanB={setIsPlanB} planBFreeRiderId={planBFreeRiderId} setPlanBFreeRiderId={setPlanBFreeRiderId} />;
+              case "members": return <MembersScreen members={members} onAddMember={(m) => setMembers([...members, m])} isPlanB={isPlanB} setIsPlanB={setIsPlanB} planBFreeRiderId={planBFreeRiderId} setPlanBFreeRiderId={setPlanBFreeRiderId} onSelectMember={(m) => setSelectedMember(m)} />;
               default: return <HomeScreen records={records} members={members} currentDay={currentDay} setCurrentDay={setCurrentDay} onOpenAdd={() => setIsModalOpen(true)} note={note} setNote={setNote} totalDays={totalDays} setTotalDays={setTotalDays} />;
             }
           };
@@ -601,6 +706,8 @@
               </div>
 
               <QuickRecordModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} members={members} currentDay={currentDay} onSave={(newRec) => setRecords([newRec, ...records])} />
+              
+              <MemberProfileModal member={selectedMember} isOpen={!!selectedMember} onClose={() => setSelectedMember(null)} onUpdate={handleUpdateMember} />
             </div>
           );
         }
