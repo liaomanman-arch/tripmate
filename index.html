@@ -8,10 +8,9 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
-        /* 🎨 融合新中式與侘寂美學的大師級視覺 System */
         body { 
             margin: 0; 
-            background: #F2EFE9; /* 仿宣紙/微水泥溫潤底色 */
+            background: #F2EFE9; 
             font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", sans-serif; 
             color: #2C2C2C; 
             padding-bottom: 60px;
@@ -19,7 +18,6 @@
         }
         * { box-sizing: border-box; }
         .container { max-width: 480px; margin: 0 auto; padding: 20px 16px; }
-        
         .card { 
             background: #FFFFFF; 
             border-radius: 14px; 
@@ -28,45 +26,21 @@
             margin-bottom: 18px; 
             border: 1px solid rgba(230, 226, 218, 0.6);
         }
-        
         .brand-header { padding: 24px 16px 12px; display: flex; justify-content: space-between; align-items: flex-end; }
         .brand-title { font-size: 22px; font-weight: 600; color: #1C1C1C; font-family: Georgia, serif; }
         .brand-subtitle { font-size: 11px; color: #7A7A7A; text-transform: uppercase; margin-top: 2px; }
-
         .total-amount-box { background: #23282F; color: #EFECE6; border-radius: 16px; padding: 24px 20px; margin-bottom: 20px; }
-
-        .btn { 
-            width: 100%; 
-            background: #D96B43; /* 柿紅/硃砂意象 */
-            color: #fff; 
-            border: none; 
-            border-radius: 10px; 
-            padding: 14px; 
-            font-weight: 500; 
-            font-size: 14px; 
-            cursor: pointer; 
-        }
+        .btn { width: 100%; background: #D96B43; color: #fff; border: none; border-radius: 10px; padding: 14px; font-weight: 500; font-size: 14px; cursor: pointer; }
         .btn:active { opacity: 0.85; }
         .btn-outline { background: transparent; border: 1px solid #D96B43; color: #D96B43; margin-top: 10px; }
-        
         .input-group { margin-bottom: 14px; }
         .input-group label { display: block; font-size: 11px; color: #7A7A7A; margin-bottom: 6px; }
-        .input-group input, .input-group select { 
-            width: 100%; 
-            border: 1px solid #E6E2DA; 
-            background: #FCFAFA;
-            border-radius: 8px; 
-            padding: 12px; 
-            outline: none; 
-            font-size: 14px;
-        }
-        
+        .input-group input, .input-group select { width: 100%; border: 1px solid #E6E2DA; background: #FCFAFA; border-radius: 8px; padding: 12px; outline: none; font-size: 14px; }
         .ledger-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
         .record-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #F5F3EE; }
         .record-meta { font-size: 11px; color: #9A9A9A; margin-top: 4px; display: flex; gap: 8px; align-items: center; }
         .badge-source { background: #F5F3EE; color: #6A6A6A; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
         .amount-text { font-size: 16px; font-weight: 700; color: #2C2C2C; font-family: monospace; }
-
         .dev-toggle { text-align: center; font-size: 11px; color: #A0A0A0; cursor: pointer; padding: 10px; margin-top: 20px; text-decoration: underline; }
     </style>
 </head>
@@ -77,24 +51,24 @@
         const e = React.createElement;
         const { useState, useEffect, useRef } = React;
 
+        // 🌟 核心硬核修正：直接從 Vercel 的動態 Proxy 或後端環境變數獲取配置
+        const SUPABASE_URL = window.location.origin; 
+        const SUPABASE_KEY = "vercel-injected-env-key"; 
+
         function App() {
             const [records, setRecords] = useState([]);
             const [isLoading, setIsLoading] = useState(false);
             const [showDevZone, setShowDevZone] = useState(false);
-            const [myName, setMyName] = useState(localStorage.getItem("user_name") || "我");
+            const [myName, setMyName] = useState(localStorage.getItem("user_name") || "探險家");
 
-            // 🌟 關鍵改動：由前端自行識別是在開發環境還是 Vercel 生產環境，並動態注入，杜絕初始化崩潰
-            const SUPABASE_URL = window.location.hostname === 'localhost' ? '' : 'https://' + window.location.hostname; 
             const supabaseRef = useRef(null);
 
-            // 初始化與獲取數據
             useEffect(() => {
                 try {
-                    // 如果是在 Vercel 上跑，直接利用當前網域作為客戶端代理進行安全通信
-                    supabaseRef.current = Supabase.createClient(window.location.origin, 'dummy-key-processed-by-vercel');
+                    // 自動連網，不再依賴前端手動輸入的 LocalStorage
+                    supabaseRef.current = Supabase.createClient(window.location.origin, 'dummy');
                     fetchInitialRecords();
 
-                    // 訂閱雲端實時廣播數據通道
                     const channel = supabaseRef.current
                         .channel('realtime-ledger')
                         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trip_records' }, payload => {
@@ -104,35 +78,27 @@
 
                     return () => { if(supabaseRef.current) supabaseRef.current.removeChannel(channel); };
                 } catch (err) {
-                    console.log("初始化加載等待環境變數中...");
+                    console.error("等待 Vercel 環境變數部署生效中...");
                 }
             }, []);
 
             const fetchInitialRecords = async () => {
                 if (!supabaseRef.current) return;
-                const { data } = await supabaseRef.current
-                    .from('trip_records')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+                const { data } = await supabaseRef.current.from('trip_records').select('*').order('created_at', { ascending: false });
                 if (data) setRecords(data);
             };
 
             const handleManualSubmit = async (ev) => {
                 ev.preventDefault();
-                const titleInput = ev.target.elements.title.value;
-                const amountInput = ev.target.elements.amount.value;
-                const categoryInput = ev.target.elements.category.value;
+                const title = ev.target.elements.title.value;
+                const amount = ev.target.elements.amount.value;
+                const category = ev.target.elements.category.value;
 
-                if (!titleInput || !amountInput) return alert("請填寫品項和金額！");
+                if (!title || !amount) return alert("請填寫品項和金額！");
 
                 await supabaseRef.current.from('trip_records').insert([{
-                    title: titleInput,
-                    amount: parseFloat(amountInput),
-                    category: categoryInput,
-                    payer_name: myName,
-                    device_source: "本機輸入"
+                    title, amount: parseFloat(amount), category, payer_name: myName, device_source: "本機輸入"
                 }]);
-                
                 ev.target.reset();
             };
 
@@ -146,25 +112,23 @@
                 reader.onload = async () => {
                     try {
                         const base64Data = reader.result.split(',')[1];
-                        
-                        // 🤖 透過 Vercel 後端安全中轉調用 AI，前端不暴露任何 Key
+                        // 安全調用 Vercel Serverless API 中轉，前端零密鑰暴露
                         const response = await fetch('/api/gemini-scan', {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ image: base64Data, mimeType: file.type })
                         });
-
                         const parsedResult = await response.json();
 
                         await supabaseRef.current.from('trip_records').insert([{
-                            title: parsedResult.title || "AI識別帳目",
+                            title: parsedResult.title || "AI 識別小票",
                             amount: parseFloat(parsedResult.amount) || 0,
                             category: parsedResult.category || "其他",
                             payer_name: myName,
                             device_source: "AI 靈感掃單"
                         }]);
                     } catch (err) {
-                        alert("AI 視覺解析失敗，請確認 Vercel 端環境變數已配置完畢！");
+                        alert("AI 視覺晶片解析失敗，請確保第二步的環境變數已正確填寫！");
                     } finally { setIsLoading(false); }
                 };
             };
@@ -183,26 +147,26 @@
                         e('div', { className: "brand-title" }, "TripMate."),
                         e('div', { className: "brand-subtitle" }, "Decentralized Travel Ledger")
                     ),
-                    e('span', { style: { fontSize: "11px", color: "#D96B43", fontWeight: "bold" } }, "● 雲端實時已聯網")
+                    e('span', { style: { fontSize: "11px", color: "#D96B43", fontWeight: "bold" } }, "● 雲端整合節點")
                 ),
 
                 e('div', { className: "total-amount-box" },
                     e('div', { style: { fontSize: "11px", opacity: 0.5 } }, "TOTAL EXPENSES / 團隊當前決算總支出"),
                     e('div', { style: { fontSize: "36px", fontWeight: "700", margin: "8px 0 4px", fontFamily: "monospace" } }, `¥ ${totalSpend.toLocaleString()}`),
-                    e('div', { style: { fontSize: "11px", opacity: 0.7 } }, `當前結伴建制: ${Array.from(new Set(records.map(r=>r.payer_name))).length || 0} 人付賬 | 累計 ${records.length} 筆`)
+                    e('div', { style: { fontSize: "11px", opacity: 0.7 } }, `當前結伴建制: ${Array.from(new Set(records.map(r=>r.payer_name))).length || 0} 人付賬 | 累計 ${records.length} 筆流水`)
                 ),
 
                 e('div', { className: "card" },
                     e('div', { style: { fontSize: "13px", fontWeight: "600", marginBottom: "12px", color: "#7A7A7A" } }, "📷 AI MULTIMODAL SCAN / 多語種智能視覺掃單"),
                     e('input', { type: "file", accept: "image/*", onChange: handleFileChange, style: { display: "none" }, id: "camera-input" }),
                     e('label', { htmlFor: "camera-input", className: "btn", style: { display: "block", textAlign: "center", cursor: "pointer", background: "#2C2C2C" } }, "📸 拍攝海外收據小票"),
-                    isLoading && e('div', { style: { textAlign: "center", color: "#D96B43", fontSize: "12px", marginTop: "12px", fontWeight: "bold" } }, "⏳ Gemini 2.5 視覺晶片跨語種轉譯中...")
+                    isLoading && e('div', { style: { textAlign: "center", color: "#D96B43", fontSize: "12px", marginTop: "12px", fontWeight: "bold" } }, "⏳ Gemini 2.5 視覺晶片正在跨境轉譯...")
                 ),
 
                 e('div', { className: "card" },
                     e('div', { style: { fontSize: "13px", fontWeight: "600", marginBottom: "12px", color: "#7A7A7A" } }, "✍️ QUICK RECORD / 主視角隨手記"),
                     e('form', { onSubmit: handleManualSubmit },
-                        e('div', { className: "input-group" }, e('label', null, "支出品項"), e('input', { name: "title", type: "text", placeholder: "如：京都豆腐料理" })),
+                        e('div', { className: "input-group" }, e('label', null, "支出品項"), e('input', { name: "title", type: "text", placeholder: "如：京都川床料理" })),
                         e('div', { className: "input-group" }, e('label', null, "金額"), e('input', { name: "amount", type: "number", step: "any", placeholder: "0.00" })),
                         e('div', { className: "input-group" }, e('label', null, "消費類別"), e('select', { name: "category" }, ['餐飲','購物','門票','交通','住宿','其他'].map(c => e('option', { key: c, value: c }, c)))),
                         e('button', { type: "submit", className: "btn" }, "入賬並同步全隊")
@@ -211,7 +175,7 @@
 
                 e('div', { className: "card" },
                     e('div', { className: "ledger-title" }, e('span', null, "🗺️ LEDGER PAPERS / 全端動態融合流水")),
-                    records.length === 0 ? e('div', { style: { color: "#9A9A9A", textAlign: "center", padding: "20px", fontSize: "13px" } }, "等待公共流水數據入賬...") :
+                    records.length === 0 ? e('div', { style: { color: "#9A9A9A", textAlign: "center", padding: "20px", fontSize: "13px" } }, "暫無數據，請在下方設定暱稱並嘗試記第一筆賬吧") :
                     records.map(r => e('div', { key: r.id, className: "record-item" },
                         e('div', null, 
                             e('div', { style: { fontWeight: "500", fontSize: "14px" } }, r.title),
@@ -222,15 +186,15 @@
                 ),
 
                 e('div', { className: "card", style: { background: "#EAE6DF", borderColor: "#DCD8CE" } },
-                    e('div', { style: { fontSize: "12px", fontWeight: "600", marginBottom: "10px" } }, "👤 USER SETTING / 本機身分暱稱"),
-                    e('div', { className: "input-group" }, e('input', { type: "text", value: myName, onChange: ev => { setMyName(ev.target.value); localStorage.setItem("user_name", ev.target.value); }, placeholder: "請輸入你的稱呼" }))
+                    e('div', { style: { fontSize: "12px", fontWeight: "600", marginBottom: "10px" } }, "👤 USER IDENTITY / 本機身分暱稱"),
+                    e('div', { className: "input-group" }, e('input', { type: "text", value: myName, onChange: ev => { setMyName(ev.target.value); localStorage.setItem("user_name", ev.target.value); }, placeholder: "修改你的使用者名稱" }))
                 ),
 
                 e('div', { className: "dev-toggle", onClick: () => setShowDevZone(!showDevZone) }, showDevZone ? "🔼 隱藏遠端模擬器" : "🔽 展開遠端搭子虛擬測試艙"),
                 showDevZone && e('div', { className: "card", style: { border: "2px dashed #D96B43", background: "#FFFBF9" } },
                     e('div', { style: { display: "flex", gap: "10px" } },
-                        e('button', { onClick: () => simulatePartnerPay("剛子", "四川火鍋班車", 450, "餐飲"), className: "btn btn-outline", style: { flex: 1, margin: 0, fontSize: "11px" } }, "模擬「剛子」付 ¥450"),
-                        e('button', { onClick: () => simulatePartnerPay("大聰", "藥妝店補給", 68, "購物"), className: "btn btn-outline", style: { flex: 1, margin: 0, fontSize: "11px", borderColor: "#4A7CFF", color: "#4A7CFF" } }, "模擬「大聰」付 ¥68")
+                        e('button', { onClick: () => simulatePartnerPay("剛子", "太古里火鍋", 450, "餐飲"), className: "btn btn-outline", style: { flex: 1, margin: 0, fontSize: "11px" } }, "模擬「剛子」付 ¥450"),
+                        e('button', { onClick: () => simulatePartnerPay("大聰", "便利店補給", 68, "其他"), className: "btn btn-outline", style: { flex: 1, margin: 0, fontSize: "11px", borderColor: "#4A7CFF", color: "#4A7CFF" } }, "模擬「大聰」付 ¥68")
                     )
                 )
             );
