@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TripMate 旅行记账</title>
+    <title>TripMate 旅行记账 完全体</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -52,15 +52,12 @@
 
         const CATEGORIES = ["餐饮", "购物", "门票", "交通", "住宿", "其他"];
         const CAT_COLORS = { 餐饮: C.orange, 购物: C.blue, 门票: C.yellow, 交通: C.green, 住宿: "#9B59B6", 其他: C.sub };
-        const CAT_ICONS = { 餐饮: "🍜", 购物: "🛍️", 门票: "🎟️", 交通: "🚄", 住宿: "🏨", 其他: "📦" };
+        const CAT_ICONS = { 餐饮: "🍜", 🛍️: "🛍️", 门票: "🎟️", 交通: "🚄", 住宿: "🏨", 其他: "📦", 购物: "🛍️" };
 
-        const INITIAL_MEMBERS = [
-          { id: 1, name: "小雨", emoji: "👩‍🦱", color: C.orange },
-          { id: 2, name: "阿明", emoji: "👨‍🦳", color: C.blue },
-          { id: 3, name: "Tony", emoji: "🧑‍🦰", color: C.green },
-        ];
+        const MEMBER_EMOJIS = ["🦊", "🐼", "🦁", "🐸", "🐷", "🐨", "🐯", "🐱", "🐶"];
+        const MEMBER_COLORS = [C.orange, C.blue, C.green, C.yellow, "#9B59B6", "#E74C3C", "#1ABC9C", "#34495E"];
 
-        // ─── 2. 公用 UI 组件 ───
+        // ─── 2. UI UTILS ───
         function Card({ children, style, onClick }) {
           return (
             <div onClick={onClick} style={{ background: C.card, borderRadius: 18, padding: 18, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}>{children}</div>
@@ -85,13 +82,13 @@
           );
         }
 
-        // ─── 3. 手动随手记弹窗 ───
+        // ─── 3. MODAL ───
         function QuickRecordModal({ isOpen, onClose, members, onSave, currentDay }) {
           if (!isOpen) return null;
           const [amount, setAmount] = useState("");
           const [title, setTitle] = useState("");
           const [category, setCategory] = useState("餐饮");
-          const [payerId, setPayerId] = useState(members[0].id);
+          const [payerId, setPayerId] = useState(members[0]?.id || "");
 
           const handleSubmit = (e) => {
             e.preventDefault();
@@ -127,9 +124,9 @@
                   </div>
                   <div style={{ marginBottom: 24 }}>
                     <label style={{ fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 8, display: "block" }}>付款人</label>
-                    <div style={{ display: "flex", gap: 12 }}>
+                    <div style={{ display: "flex", gap: 12, overflowX: "auto" }} className="no-scroll">
                       {members.map(m => (
-                        <div key={m.id} onClick={() => setPayerId(m.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 12, background: payerId === m.id ? m.color + "15" : C.bg, border: `2px solid ${payerId === m.id ? m.color : "transparent"}`, cursor: "pointer" }}>
+                        <div key={m.id} onClick={() => setPayerId(m.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 12, background: payerId === m.id ? m.color + "15" : C.bg, border: `2px solid ${payerId === m.id ? m.color : "transparent"}`, cursor: "pointer", whiteSpace: "nowrap" }}>
                           <MemberDot member={m} size={24} />
                           <span style={{ fontSize: 13, fontWeight: 700 }}>{m.name}</span>
                         </div>
@@ -143,7 +140,7 @@
           );
         }
 
-        // 🗺 视图：旅程主看板
+        // 🗺 视图：首页
         function HomeScreen({ records, members, currentDay, setCurrentDay, onOpenAdd, note, setNote, totalDays, setTotalDays }) {
           const totalBudget = 20000;
           const [isEditingDays, setIsEditingDays] = useState(false);
@@ -186,7 +183,7 @@
 
               <Card style={{ marginBottom: 16, background: `linear-gradient(135deg, ${C.ink} 0%, #2C323F 100%)`, color: "#fff" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>当前旅程账本总结 (已清零)</span>
+                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>当前旅程账本总结</span>
                   <Tag label="本币 CNY" color="#fff" bg="rgba(255,255,255,0.15)" />
                 </div>
                 <div style={{ fontSize: 30, fontWeight: 900, marginBottom: 12, letterSpacing: -1 }}>
@@ -217,10 +214,10 @@
                 dayRecords.map(r => (
                   <Card key={r.id} style={{ marginBottom: 10, padding: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 10, background: CAT_COLORS[r.category] + "15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{CAT_ICONS[r.category]}</div>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, background: CAT_COLORS[r.category] + "15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{CAT_ICONS[r.category] || "📦"}</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700, color: C.ink, fontSize: 14 }}>{r.title}</div>
-                        <span style={{ fontSize: 11, color: C.sub, display: "inline-block", marginTop: 2 }}>{r.store} · {members.find(m => m.id === r.memberId)?.name}代付</span>
+                        <span style={{ fontSize: 11, color: C.sub, display: "inline-block", marginTop: 2 }}>{r.store} · {members.find(m => m.id === r.memberId)?.name || "未知"}代付</span>
                       </div>
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: 16, fontWeight: 900, color: C.ink }}>¥{r.amount}</div>
@@ -234,7 +231,7 @@
           );
         }
 
-        // 📒 视图：账本
+        // 📒 视图：流水
         function RecordsScreen({ records, members }) {
           return (
             <div style={{ padding: "16px 16px 90px" }}>
@@ -245,8 +242,8 @@
                 records.map(r => (
                   <Card key={r.id} style={{ marginBottom: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: C.orangeLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{CAT_ICONS[r.category]}</div>
-                      <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{r.title}</div><div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>Day {r.day} · {r.store}</div></div>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: C.orangeLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{CAT_ICONS[r.category] || "📦"}</div>
+                      <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{r.title}</div><div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>Day {r.day} · {r.store} · {members.find(m => m.id === r.memberId)?.name}代付</div></div>
                       <div style={{ fontSize: 16, fontWeight: 900 }}>¥{r.amount}</div>
                     </div>
                   </Card>
@@ -256,11 +253,11 @@
           );
         }
 
-        // 📷 视图：全场景 AI 扫单
+        // 📷 视图：扫单
         function ScanScreen({ currentDay, members, onAddScannedRecord }) {
           const [image, setImage] = useState(null);
           const [scanState, setScanState] = useState("idle"); 
-          const [selectedPayer, setSelectedPayer] = useState(members[0].id);
+          const [selectedPayer, setSelectedPayer] = useState(members[0]?.id || "");
           const [activeScene, setActiveScene] = useState("domestic");
 
           const SCENE_DATA = {
@@ -294,33 +291,25 @@
           const startScanning = (sceneKey) => {
             setActiveScene(sceneKey);
             setScanState("scanning");
-            setTimeout(() => {
-              setScanState("result");
-            }, 2500);
+            setTimeout(() => { setScanState("result"); }, 2500);
           };
 
           const handleConfirm = () => {
             const currentData = SCENE_DATA[activeScene];
             onAddScannedRecord({
-              id: Date.now(),
-              title: currentData.title,
-              category: currentData.category,
-              method: "AI智能扫单",
-              store: currentData.store,
-              amount: currentData.amountCNY,
-              memberId: selectedPayer,
-              day: currentDay,
+              id: Date.now(), title: currentData.title, category: currentData.category,
+              method: "AI智能扫单", store: currentData.store, amount: currentData.amountCNY,
+              memberId: selectedPayer, day: currentDay,
               time: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
               lang: currentData.lang
             });
             setImage(null); setScanState("idle");
-            alert(`🎉 场景 [${currentData.store}] 解析成功！金额已实时录入 Day ${currentDay} 账本。`);
           };
 
           return (
             <div style={{ padding: "16px 16px 90px" }}>
               <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 }}>📷 通识全场景 AI 扫单</div>
-              <div style={{ fontSize: 11, color: C.sub, marginBottom: 16 }}>只要包含金额，不论是国内超市小票、微信支付宝账单、亦或多国语言外币发票，AI 视觉均能实现一键全自动解构入账。</div>
+              <div style={{ fontSize: 11, color: C.sub, marginBottom: 16 }}>AI 视觉一键全自动解构入账。</div>
 
               {scanState === "idle" && (
                 <label style={{ display: "block" }}>
@@ -328,20 +317,16 @@
                   <div style={{ border: `2.5px dashed ${C.orange}50`, height: 220, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: C.orangeLight, borderRadius: 20, cursor: "pointer" }}>
                     <div style={{ fontSize: 44, marginBottom: 10 }}>📸</div>
                     <span style={{ fontWeight: 800, fontSize: 14, color: C.ink }}>点击拍照 / 上传任何支付凭证</span>
-                    <span style={{ fontSize: 11, color: C.sub, marginTop: 6 }}>小票、账单、支付截图统统支持</span>
                   </div>
                 </label>
               )}
 
               {scanState === "scene_select" && (
                 <Card>
-                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12, textAlign: "center", color: C.orange }}>💡 模拟真实 AI 多模态视觉分类</div>
-                  <p style={{ fontSize: 12, color: C.sub, textAlign: "center", margin: "0 0 16px" }}>当前没有云端服务器，请盲选你刚刚上传的图片类型以触发对应的 AI 解析矩阵：</p>
+                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12, textAlign: "center", color: C.orange }}>💡 模拟真实 AI 多模态分类</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {Object.keys(SCENE_DATA).map(key => (
-                      <button key={key} onClick={() => startScanning(key)} style={{ width: "100%", padding: "12px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, fontWeight: 700, color: C.ink, textAlign: "left", cursor: "pointer" }}>
-                        👉 {SCENE_DATA[key].label}
-                      </button>
+                      <button key={key} onClick={() => startScanning(key)} style={{ width: "100%", padding: "12px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, fontWeight: 700, color: C.ink, textAlign: "left", cursor: "pointer" }}>👉 {SCENE_DATA[key].label}</button>
                     ))}
                   </div>
                 </Card>
@@ -352,9 +337,7 @@
                   {image && <img src={image} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.35 }} />}
                   <div className="scanner-line" />
                   <div style={{ zIndex: 10, textAlign: "center", color: "#fff" }}>
-                    <div style={{ fontSize: 28, marginBottom: 8 }}>⚡</div>
-                    <div style={{ fontWeight: 800, fontSize: 14 }}>TripMate Vision 多模态正在智能读取...</div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>正在提取商户、识别多币种金额并解构购买明细</div>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>多模态正在智能读取...</div>
                   </div>
                 </Card>
               )}
@@ -366,32 +349,18 @@
                       <span style={{ fontSize: 13, fontWeight: 700 }}>🏢 {SCENE_DATA[activeScene].store}</span>
                       <Tag label={SCENE_DATA[activeScene].lang} color={C.orange} bg={C.orangeLight} />
                     </div>
-
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>智能摘要提取</div>
                     <div style={{ fontSize: 15, fontWeight: 800, margin: "4px 0 12px" }}>{SCENE_DATA[activeScene].title}</div>
-
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, background: "rgba(255,255,255,0.06)", padding: 10, borderRadius: 12, marginBottom: 12 }}>
-                      <div>
-                        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>原始单据面额</span>
-                        <div style={{ fontSize: 16, fontWeight: 900, marginTop: 2, color: C.yellow }}>{SCENE_DATA[activeScene].amountRaw}</div>
-                      </div>
-                      <div>
-                        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>系统自动转换入账</span>
-                        <div style={{ fontSize: 16, fontWeight: 900, marginTop: 2, color: C.green }}>¥{SCENE_DATA[activeScene].amountCNY} <span style={{ fontSize: 10 }}>CNY</span></div>
-                      </div>
+                      <div><div style={{ fontSize: 16, fontWeight: 900, color: C.yellow }}>{SCENE_DATA[activeScene].amountRaw}</div></div>
+                      <div><div style={{ fontSize: 16, fontWeight: 900, color: C.green }}>¥{SCENE_DATA[activeScene].amountCNY}</div></div>
                     </div>
-
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>结构化流水详情 (AI机翻对照)：</div>
-                    {SCENE_DATA[activeScene].details.map((item, idx) => (
-                      <div key={idx} style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", padding: "2px 0", fontFamily: "monospace" }}>{item}</div>
-                    ))}
                   </Card>
 
                   <Card style={{ marginBottom: 16, padding: 14 }}>
                     <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 10 }}>确认本次代付人</div>
-                    <div style={{ display: "flex", gap: 10 }}>
+                    <div style={{ display: "flex", gap: 10, overflowX: "auto" }} className="no-scroll">
                       {members.map(m => (
-                        <div key={m.id} onClick={() => setSelectedPayer(m.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 12, background: selectedPayer === m.id ? m.color + "15" : C.bg, border: `2px solid ${selectedPayer === m.id ? m.color : "transparent"}`, cursor: "pointer", flex: 1, justifyContent: "center" }}>
+                        <div key={m.id} onClick={() => setSelectedPayer(m.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 12, background: selectedPayer === m.id ? m.color + "15" : C.bg, border: `2px solid ${selectedPayer === m.id ? m.color : "transparent"}`, cursor: "pointer", whiteSpace: "nowrap" }}>
                           <span style={{ fontSize: 12, fontWeight: 700 }}>{m.name}</span>
                         </div>
                       ))}
@@ -408,79 +377,64 @@
           );
         }
 
-        // 📊 视图：核心统计板块 + 贪心最优分账结清算法
-        function StatsScreen({ records, members }) {
+        // 📊 视图：统计板块 (融合 A/B 方案智能切换核心算法)
+        function StatsScreen({ records, members, isPlanB, planBFreeRiderId }) {
           const totalSpend = useMemo(() => records.reduce((sum, r) => sum + r.amount, 0), [records]);
-          const avgSpend = useMemo(() => members.length > 0 ? (totalSpend / members.length).toFixed(2) : 0, [totalSpend, members]);
+          
+          // 核心重构：根据 A/B 方案计算出真正参与分摊 AA 的有效人数与名单
+          const effectiveAAContractors = useMemo(() => {
+            if (!isPlanB || !planBFreeRiderId) return members; // A方案：所有人共同分摊
+            return members.filter(m => m.id !== parseInt(planBFreeRiderId)); // B方案：剔除免单大款
+          }, [members, isPlanB, planBFreeRiderId]);
 
-          // 1. 各品类开销统计占比
+          const avgSpend = useMemo(() => {
+            if (effectiveAAContractors.length === 0) return 0;
+            return (totalSpend / effectiveAAContractors.length).toFixed(2);
+          }, [totalSpend, effectiveAAContractors]);
+
           const catStats = useMemo(() => {
-            const stats = {};
-            CATEGORIES.forEach(c => stats[c] = 0);
+            const stats = {}; CATEGORIES.forEach(c => stats[c] = 0);
             records.forEach(r => { if (stats[r.category] !== undefined) stats[r.category] += r.amount; });
             return stats;
           }, [records]);
 
-          // 2. 核心分账算法：计算出最优最简的清账路径
+          // B 方案重构算法的核心逻辑
           const dynamicTransfers = useMemo(() => {
-            if (records.length === 0) return [];
+            if (records.length === 0 || effectiveAAContractors.length === 0) return [];
             
-            // 计算每个人实际垫付了多少钱
-            const paidMap = {};
-            members.forEach(m => paidMap[m.id] = 0);
+            const paidMap = {}; members.forEach(m => paidMap[m.id] = 0);
             records.forEach(r => { if (paidMap[r.memberId] !== undefined) paidMap[r.memberId] += r.amount; });
 
-            // 计算个人的净头寸 (垫付额 - 人均应付额)
-            // 正数代表系统需要退还他钱，负数代表他需要补钱给别人
-            const perPersonCost = totalSpend / members.length;
-            const balances = members.map(m => ({
-              id: m.id,
-              name: m.name,
-              net: paidMap[m.id] - perPersonCost
-            }));
+            const perPersonCost = totalSpend / effectiveAAContractors.length;
+            
+            const balances = members.map(m => {
+              const isFreeRider = isPlanB && m.id === parseInt(planBFreeRiderId);
+              // 免单人应付费用为 0，他的净头寸就是他全部的垫付款；普通人头寸 = 垫付 - 均摊应付
+              const myDue = isFreeRider ? 0 : perPersonCost;
+              return { id: m.id, name: m.name, net: paidMap[m.id] - myDue };
+            });
 
-            // 分离出两组：债权人(应收) 和 债务人(应付)
             let creditors = balances.filter(b => b.net > 0.01).sort((a, b) => b.net - a.net);
             let debtors = balances.filter(b => b.net < -0.01).sort((a, b) => a.net - b.net);
 
-            const transfers = [];
-            let i = 0, j = 0;
-
-            // 经典贪心清账收敛算法
+            const transfers = []; let i = 0, j = 0;
             while (i < debtors.length && j < creditors.length) {
-              let debtor = debtors[i];
-              let creditor = creditors[j];
-
-              // 决定本次转账的最小公约数金额
+              let debtor = debtors[i]; let creditor = creditors[j];
               let amountToTransfer = Math.min(Math.abs(debtor.net), creditor.net);
-
               if (amountToTransfer > 0.01) {
-                transfers.push({
-                  from: debtor.name,
-                  to: creditor.name,
-                  amount: amountToTransfer.toFixed(2)
-                });
+                transfers.push({ from: debtor.name, to: creditor.name, amount: amountToTransfer.toFixed(2) });
               }
-
-              // 更新剩余头寸
-              debtor.net += amountToTransfer;
-              creditor.net -= amountToTransfer;
-
-              if (Math.abs(debtor.net) < 0.01) i++;
-              if (Math.abs(creditor.net) < 0.01) j++;
+              debtor.net += amountToTransfer; creditor.net -= amountToTransfer;
+              if (Math.abs(debtor.net) < 0.01) i++; if (Math.abs(creditor.net) < 0.01) j++;
             }
             return transfers;
-          }, [records, members, totalSpend]);
+          }, [records, members, totalSpend, effectiveAAContractors, isPlanB, planBFreeRiderId]);
 
           if (records.length === 0) {
             return (
-              <div style={{ padding: 16, pb: 90 }}>
-                <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 16 }}>📊 智能清账统计</div>
-                <Card style={{ color: C.sub, textAlign: "center", padding: "60px 0" }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>📉</div>
-                  <div>当前大账本空空如也，无数据可算。</div>
-                  <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>请去主页记账或扫单后，算法会自动生成结账路径。</div>
-                </Card>
+              <div style={{ padding: 16 }}>
+                <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 16 }}>📊 智能清账统计</div>
+                <Card style={{ color: C.sub, textAlign: "center", padding: "40px 0" }}>暂无账目数据，请在首页或扫单页记账后查看分析</Card>
               </div>
             );
           }
@@ -488,56 +442,41 @@
           return (
             <div style={{ padding: "16px 16px 100px" }}>
               <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 }}>📊 团队费用分账看板</div>
-              <div style={{ fontSize: 11, color: C.sub, marginBottom: 16 }}>基于全局债务最小化算法，自动计算最优清账路径。</div>
+              <div style={{ fontSize: 11, color: C.sub, marginBottom: 14 }}>
+                当前运行模式：{isPlanB ? `⚠️ 进阶 B 方案（免单模式）` : `✅ 标配 A 方案（全员绝对 AA）`}
+              </div>
 
-              {/* 开销大盘总览卡片 */}
-              <Card style={{ marginBottom: 16, background: `linear-gradient(135deg, ${C.blue} 0%, #355CC2 100%)`, color: "#fff" }}>
-                <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 700 }}>团队出行总花费 (已全部折算)</div>
-                <div style={{ fontSize: 32, fontWeight: 900, margin: "6px 0 14px" }}>¥{totalSpend.toLocaleString()}</div>
-                <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: 12, fontSize: 13, fontWeight: 700 }}>
-                  <span>👥 搭子总人数: {members.length} 人</span>
-                  <span style={{ color: C.yellow }}>👤 人均应付: ¥{avgSpend}</span>
+              <Card style={{ marginBottom: 16, background: isPlanB ? `linear-gradient(135deg, ${C.orange} 0%, #E65100 100%)` : `linear-gradient(135deg, ${C.blue} 0%, #355CC2 100%)`, color: "#fff" }}>
+                <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 700 }}>团队总开销</div>
+                <div style={{ fontSize: 32, fontWeight: 900, margin: "4px 0 10px" }}>¥{totalSpend.toLocaleString()}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.2)", paddingTop: 10, fontSize: 12 }}>
+                  <span>👥 有效分摊人数: {effectiveAAContractors.length}人 / 共{members.length}人</span>
+                  <span style={{ color: C.yellow, fontWeight: 800 }}>👤 实际人均应付: ¥{avgSpend}</span>
                 </div>
               </Card>
 
-              {/* ⚡ 核心分账最优清账路径方案 */}
-              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>⚖️ 智能结清方案 <Tag label="最优路径" bg={C.greenLight} color={C.green} /></div>
-              <Card style={{ marginBottom: 20, border: `2px solid ${C.green}20` }}>
+              <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>⚖️ 智能结清转账方案</div>
+              <Card style={{ marginBottom: 20 }}>
                 {dynamicTransfers.length === 0 ? (
-                  <div style={{ textAlign: "center", color: C.green, fontWeight: 700, fontSize: 13, padding: "10px 0" }}>🎉 太棒了！当前各人垫付刚好完全扯平，谁都不欠谁！</div>
+                  <div style={{ textAlign: "center", color: C.green, fontWeight: 700, fontSize: 13 }}>当前垫付刚好扯平，谁都不欠谁！</div>
                 ) : (
-                  <div>
-                    <div style={{ fontSize: 11, color: C.sub, marginBottom: 12 }}>只需按照以下提示私下微信/支付宝转账即可一步到位结清债务：</div>
-                    {dynamicTransfers.map((t, idx) => (
-                      <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: idx !== dynamicTransfers.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: C.red }}>{t.from}</span>
-                          <span style={{ fontSize: 11, color: C.sub }}>需转账给</span>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: C.green }}>{t.to}</span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 15, fontWeight: 900, color: C.ink }}>¥{t.amount}</span>
-                          <button onClick={() => {
-                            navigator.clipboard.writeText(`${t.from}需转账给${t.to} ￥${t.amount}`);
-                            alert("复制成功！可直接粘贴发送到群聊。");
-                          }} style={{ border: "none", background: C.bg, padding: "4px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, color: C.sub, cursor: "pointer" }}>📋 复制</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  dynamicTransfers.map((t, idx) => (
+                    <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: idx !== dynamicTransfers.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                      <div style={{ fontSize: 13 }}><span style={{ color: C.red, fontWeight: 800 }}>{t.from}</span> 需转给 <span style={{ color: C.green, fontWeight: 800 }}>{t.to}</span></div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 15, fontWeight: 900 }}>¥{t.amount}</span></div>
+                    </div>
+                  ))
                 )}
               </Card>
 
-              {/* 分类开销比例条 */}
-              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 12 }}>🍰 各消费业态占比</div>
+              <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>🍰 各消费业态占比</div>
               <Card>
                 {CATEGORIES.map(cat => {
-                  const amt = catStats[cat];
-                  const pct = totalSpend > 0 ? Math.round((amt / totalSpend) * 100) : 0;
+                  const amt = catStats[cat]; const pct = totalSpend > 0 ? Math.round((amt / totalSpend) * 100) : 0;
                   return (
-                    <div key={cat} style={{ marginBottom: 14 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
-                        <span style={{ color: C.ink }}>{CAT_ICONS[cat]} {cat}</span>
+                    <div key={cat} style={{ marginBottom: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 700 }}>{CAT_ICONS[cat]} {cat}</span>
                         <span style={{ color: C.sub }}>¥{amt.toFixed(1)} ({pct}%)</span>
                       </div>
                       <ProgressBar pct={pct} color={CAT_COLORS[cat]} height={6} />
@@ -549,17 +488,90 @@
           );
         }
 
-        // 👥 视图：搭子社交
-        function MembersScreen() { return <div style={{ padding: 16 }}><div style={{ fontSize: 16, fontWeight: 900, marginBottom: 16 }}>旅行搭子与个人中心</div><Card style={{ color: C.sub, textAlign: "center" }}>👥 等待下一阶段细化搭子管理与 B 方案设置面板</Card></div>; }
+        // 👥 视图：核心搭子管理与 B 方案切换面板
+        function MembersScreen({ members, onAddMember, isPlanB, setIsPlanB, planBFreeRiderId, setPlanBFreeRiderId }) {
+          const [new_name, setNewName] = useState("");
 
-        // ─── 5. APP 核心控制主骨架 ───
+          const handleCreate = (e) => {
+            e.preventDefault();
+            if (!new_name.trim()) return;
+            const randEmoji = MEMBER_EMOJIS[Math.floor(Math.random() * MEMBER_EMOJIS.length)];
+            const randColor = MEMBER_COLORS[Math.floor(Math.random() * MEMBER_COLORS.length)];
+            onAddMember({ id: Date.now(), name: new_name.trim(), emoji: randEmoji, color: randColor });
+            setNewName("");
+          };
+
+          return (
+            <div style={{ padding: "16px 16px 90px" }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 }}>👥 旅行搭子面板与系统配置</div>
+              <div style={{ fontSize: 11, color: C.sub, marginBottom: 16 }}>随心扩增您的旅行团队，并自由调节差异化计算逻辑。</div>
+
+              {/* 差异化大招：A/B方案无缝切换器 */}
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>💡 分账结算算法模式切换</div>
+              <Card style={{ marginBottom: 20, border: isPlanB ? `2px solid ${C.orange}` : `2px solid ${C.blue}30` }}>
+                <div style={{ display: "flex", background: C.bg, padding: 4, borderRadius: 12, marginBottom: 14 }}>
+                  <button onClick={() => setIsPlanB(false)} style={{ flex: 1, border: "none", background: !isPlanB ? C.card : "transparent", color: !isPlanB ? C.blue : C.sub, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: !isPlanB ? "0 2px 8px rgba(0,0,0,0.05)" : "none" }}>
+                    A 方案 (绝对平摊 AA)
+                  </button>
+                  <button onClick={() => setIsPlanB(true)} style={{ flex: 1, border: "none", background: isPlanB ? C.card : "transparent", color: isPlanB ? C.orange : C.sub, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: isPlanB ? "0 2px 8px rgba(0,0,0,0.05)" : "none" }}>
+                    B 方案 (指定金主免单)
+                  </button>
+                </div>
+
+                {isPlanB ? (
+                  <div style={{ background: C.orangeLight, padding: 12, borderRadius: 12, fontSize: 12, color: C.orange, fontWeight: 700 }}>
+                    <div style={{ marginBottom: 8 }}>🎯 已激活伴侣/金主关怀逻辑：指定某一个搭子本次旅行「完全免费不摊钱」，开销由其余人均摊！</div>
+                    <label style={{ display: "block", fontSize: 11, color: C.ink, marginBottom: 6 }}>选择全场免单的搭子人选：</label>
+                    <select value={planBFreeRiderId} onChange={e => setPlanBFreeRiderId(e.target.value)} style={{ width: "100%", padding: "8px", borderRadius: 8, border: `1px solid ${C.orange}`, outline: "none", fontSize: 13, fontWeight: 700 }}>
+                      {members.map(m => (
+                        <option key={m.id} value={m.id}>🌟 免单人：{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: C.sub, lineHeight: "1.5", fontWeight: 600 }}>
+                    ✨ 标准通识模式。团队内所有人地位绝对平等。总开销自动除以当前所有搭子的总人数进行大锅饭均摊。
+                  </div>
+                )}
+              </Card>
+
+              {/* 搭子列表看板 */}
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>👥 当前同伴名单 ({members.length} 人)</div>
+              <Card style={{ marginBottom: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {members.map(m => (
+                    <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, background: C.bg, padding: 10, borderRadius: 12 }}>
+                      <MemberDot member={m} size={30} />
+                      <span style={{ fontSize: 13, fontWeight: 800, color: C.ink }}>{m.name}</span>
+                      {isPlanB && m.id === parseInt(planBFreeRiderId) && <span style={{ fontSize: 10, background: C.orange, color: "#fff", padding: "1px 4px", borderRadius: 4, fontWeight: 900 }}>免单</span>}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* 动态加入新搭子表单 */}
+              <Card>
+                <form onSubmit={handleCreate} style={{ display: "flex", gap: 10 }}>
+                  <input type="text" placeholder="输入新搭子昵称..." value={new_name} onChange={e => setNewName(e.target.value)} style={{ flex: 1, background: C.bg, border: "none", borderRadius: 12, padding: "12px 14px", fontSize: 14, outline: "none", fontWeight: 700 }} />
+                  <button type="submit" style={{ background: C.ink, color: "#fff", border: "none", borderRadius: 12, padding: "0 18px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>➕ 拉入队伍</button>
+                </form>
+              </Card>
+            </div>
+          );
+        }
+
+        // ─── 5. CONTROL CONTAINER ───
         function TripMateV2() {
           const [activeTab, setActiveTab] = useState("home");
           const [currentDay, setCurrentDay] = useState(1);
           const [totalDays, setTotalDays] = useState(3); 
-          
           const [records, setRecords] = useState([]); 
-          const [members] = useState(INITIAL_MEMBERS);
+
+          // 核心联动全局 State 树
+          const [members, setMembers] = useState(INITIAL_MEMBERS);
+          const [isPlanB, setIsPlanB] = useState(false);
+          const [planBFreeRiderId, setPlanBFreeRiderId] = useState(INITIAL_MEMBERS[2]?.id || "");
+
           const [isModalOpen, setIsModalOpen] = useState(false);
           const [note, setNote] = useState({});
 
@@ -568,8 +580,8 @@
               case "home": return <HomeScreen records={records} members={members} currentDay={currentDay} setCurrentDay={setCurrentDay} onOpenAdd={() => setIsModalOpen(true)} note={note} setNote={setNote} totalDays={totalDays} setTotalDays={setTotalDays} />;
               case "records": return <RecordsScreen records={records} members={members} />;
               case "scan": return <ScanScreen currentDay={currentDay} members={members} onAddScannedRecord={(newRec) => setRecords([newRec, ...records])} />;
-              case "stats": return <StatsScreen records={records} members={members} />;
-              case "members": return <MembersScreen />;
+              case "stats": return <StatsScreen records={records} members={members} isPlanB={isPlanB} planBFreeRiderId={planBFreeRiderId} />;
+              case "members": return <MembersScreen members={members} onAddMember={(m) => setMembers([...members, m])} isPlanB={isPlanB} setIsPlanB={setIsPlanB} planBFreeRiderId={planBFreeRiderId} setPlanBFreeRiderId={setPlanBFreeRiderId} />;
               default: return <HomeScreen records={records} members={members} currentDay={currentDay} setCurrentDay={setCurrentDay} onOpenAdd={() => setIsModalOpen(true)} note={note} setNote={setNote} totalDays={totalDays} setTotalDays={setTotalDays} />;
             }
           };
