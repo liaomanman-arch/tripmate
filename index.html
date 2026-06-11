@@ -32,6 +32,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
+        // ✅ 修正点 1：使用纯原生解构，彻底移除导致白屏崩溃的 import 关键字
         const { useState, useMemo } = React;
 
         // ─── 1. DESIGN TOKENS ───
@@ -52,10 +53,17 @@
 
         const CATEGORIES = ["餐饮", "购物", "门票", "交通", "住宿", "其他"];
         const CAT_COLORS = { 餐饮: C.orange, 购物: C.blue, 门票: C.yellow, 交通: C.green, 住宿: "#9B59B6", 其他: C.sub };
-        const CAT_ICONS = { 餐饮: "🍜", 🛍️: "🛍️", 门票: "🎟️", 交通: "🚄", 住宿: "🏨", 其他: "📦", 购物: "🛍️" };
+        const CAT_ICONS = { 餐饮: "🍜", 购物: "🛍️", 门票: "🎟️", 交通: "🚄", 住宿: "🏨", 其他: "📦" };
 
         const MEMBER_EMOJIS = ["🦊", "🐼", "🦁", "🐸", "🐷", "🐨", "🐯", "🐱", "🐶"];
         const MEMBER_COLORS = [C.orange, C.blue, C.green, C.yellow, "#9B59B6", "#E74C3C", "#1ABC9C", "#34495E"];
+
+        // ✅ 修正点 2：补齐初始成员底层数据，防止运行时报 undefined 错误
+        const INITIAL_MEMBERS = [
+          { id: 1, name: "刚子", emoji: "🦊", color: C.orange },
+          { id: 2, name: "大聪", emoji: "🐼", color: C.blue },
+          { id: 3, name: "小雨", emoji: "🐨", color: C.green }
+        ];
 
         // ─── 2. UI UTILS ───
         function Card({ children, style, onClick }) {
@@ -377,14 +385,13 @@
           );
         }
 
-        // 📊 视图：统计板块 (融合 A/B 方案智能切换核心算法)
+        // 📊 视图：统计板块
         function StatsScreen({ records, members, isPlanB, planBFreeRiderId }) {
           const totalSpend = useMemo(() => records.reduce((sum, r) => sum + r.amount, 0), [records]);
           
-          // 核心重构：根据 A/B 方案计算出真正参与分摊 AA 的有效人数与名单
           const effectiveAAContractors = useMemo(() => {
-            if (!isPlanB || !planBFreeRiderId) return members; // A方案：所有人共同分摊
-            return members.filter(m => m.id !== parseInt(planBFreeRiderId)); // B方案：剔除免单大款
+            if (!isPlanB || !planBFreeRiderId) return members;
+            return members.filter(m => m.id !== parseInt(planBFreeRiderId));
           }, [members, isPlanB, planBFreeRiderId]);
 
           const avgSpend = useMemo(() => {
@@ -398,7 +405,6 @@
             return stats;
           }, [records]);
 
-          // B 方案重构算法的核心逻辑
           const dynamicTransfers = useMemo(() => {
             if (records.length === 0 || effectiveAAContractors.length === 0) return [];
             
@@ -409,7 +415,6 @@
             
             const balances = members.map(m => {
               const isFreeRider = isPlanB && m.id === parseInt(planBFreeRiderId);
-              // 免单人应付费用为 0，他的净头寸就是他全部的垫付款；普通人头寸 = 垫付 - 均摊应付
               const myDue = isFreeRider ? 0 : perPersonCost;
               return { id: m.id, name: m.name, net: paidMap[m.id] - myDue };
             });
@@ -488,7 +493,7 @@
           );
         }
 
-        // 👥 视图：核心搭子管理与 B 方案切换面板
+        // 👥 视图：搭子管理
         function MembersScreen({ members, onAddMember, isPlanB, setIsPlanB, planBFreeRiderId, setPlanBFreeRiderId }) {
           const [new_name, setNewName] = useState("");
 
@@ -506,7 +511,6 @@
               <div style={{ fontSize: 18, fontWeight: 900, color: C.ink, marginBottom: 4 }}>👥 旅行搭子面板与系统配置</div>
               <div style={{ fontSize: 11, color: C.sub, marginBottom: 16 }}>随心扩增您的旅行团队，并自由调节差异化计算逻辑。</div>
 
-              {/* 差异化大招：A/B方案无缝切换器 */}
               <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>💡 分账结算算法模式切换</div>
               <Card style={{ marginBottom: 20, border: isPlanB ? `2px solid ${C.orange}` : `2px solid ${C.blue}30` }}>
                 <div style={{ display: "flex", background: C.bg, padding: 4, borderRadius: 12, marginBottom: 14 }}>
@@ -535,7 +539,6 @@
                 )}
               </Card>
 
-              {/* 搭子列表看板 */}
               <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, marginBottom: 10 }}>👥 当前同伴名单 ({members.length} 人)</div>
               <Card style={{ marginBottom: 16 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -549,7 +552,6 @@
                 </div>
               </Card>
 
-              {/* 动态加入新搭子表单 */}
               <Card>
                 <form onSubmit={handleCreate} style={{ display: "flex", gap: 10 }}>
                   <input type="text" placeholder="输入新搭子昵称..." value={new_name} onChange={e => setNewName(e.target.value)} style={{ flex: 1, background: C.bg, border: "none", borderRadius: 12, padding: "12px 14px", fontSize: 14, outline: "none", fontWeight: 700 }} />
@@ -567,7 +569,6 @@
           const [totalDays, setTotalDays] = useState(3); 
           const [records, setRecords] = useState([]); 
 
-          // 核心联动全局 State 树
           const [members, setMembers] = useState(INITIAL_MEMBERS);
           const [isPlanB, setIsPlanB] = useState(false);
           const [planBFreeRiderId, setPlanBFreeRiderId] = useState(INITIAL_MEMBERS[2]?.id || "");
@@ -590,7 +591,6 @@
             <div style={{ background: C.bg, minHeight: "100vh", position: "relative" }}>
               {renderScreen()}
 
-              {/* 吸底导航 */}
               <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255, 255, 255, 0.96)", backdropFilter: "blur(10px)", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-around", padding: "10px 0 24px", zIndex: 900 }}>
                 {TABS.map(t => (
                   <div key={t.key} onClick={() => setActiveTab(t.key)} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", minWidth: 55 }}>
